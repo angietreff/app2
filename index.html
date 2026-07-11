@@ -136,6 +136,16 @@
   .somn-rensa{display:block;margin:8px auto 0;background:none;border:none;font-family:'Karla',sans-serif;font-size:.75rem;color:#8A8272;cursor:pointer;text-decoration:underline}
   .steg-input{width:100%;border:1px solid #E8E1D3;border-radius:10px;padding:11px 12px;font-family:'Karla',sans-serif;font-size:1rem;background:#fff;color:var(--black);text-align:center}
   .steg-input:focus{outline:2px solid var(--gron-ljus);outline-offset:1px}
+  .tacksam-rad{width:100%;border:none;border-bottom:1px solid #E8E1D3;padding:10px 2px;font-family:'Karla',sans-serif;font-size:.95rem;background:transparent;color:var(--black)}
+  .tacksam-rad:last-child{border-bottom:none}
+  .tacksam-rad:focus{outline:none;border-bottom-color:var(--gron-ljus)}
+  .kval-etikett{text-align:center;font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:#8A8272;margin-top:12px}
+  .kval-val{display:flex;gap:14px;justify-content:center;margin-top:8px}
+  .kval-val button{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .08s ease}
+  .kval-val .kv-g{background:var(--dag-gron)}
+  .kval-val .kv-y{background:var(--dag-gul)}
+  .kval-val .kv-r{background:var(--dag-rod)}
+  .kval-val button.vald{border-color:var(--black);transform:scale(1.18)}
 
   /* ---------- kalender ---------- */
   .kal-huvud{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
@@ -235,6 +245,7 @@
       <div class="rad"><span class="txt">Kände mig ensam</span><button class="vipp" data-falt="ensam"></button></div>
       <div class="rad"><span class="txt">Umgicks med vänner</span><button class="vipp" data-falt="vanner"></button></div>
       <div class="rad"><span class="txt">Jag och Patrik bråkade</span><button class="vipp" data-falt="brak"></button></div>
+      <div class="rad"><span class="txt">Närhet med Patrik</span><button class="vipp" data-falt="narhet"></button></div>
       <div class="rad"><span class="txt">Hade egen tid för mig själv</span><button class="vipp" data-falt="egentid"></button></div>
       <div class="rad"><span class="txt">Gjorde mindfulness</span><button class="vipp" data-falt="mindfulness"></button></div>
       <div class="rad"><span class="txt">Tränade</span><button class="vipp" data-falt="traning"></button></div>
@@ -256,6 +267,12 @@
         <div class="somn-varde" id="somnVarde">–</div>
         <button id="somnPlus" aria-label="Mer sömn">+</button>
       </div>
+      <div class="kval-etikett">Kvalitet</div>
+      <div class="kval-val" id="somnKval">
+        <button data-kval="g" class="kv-g" aria-label="God sömn"></button>
+        <button data-kval="y" class="kv-y" aria-label="Okej sömn"></button>
+        <button data-kval="r" class="kv-r" aria-label="Dålig sömn"></button>
+      </div>
       <button class="somn-rensa" id="somnRensa">Rensa</button>
     </div>
 
@@ -272,6 +289,13 @@
     <div class="kort">
       <div class="etikett">Antal steg</div>
       <input type="text" inputmode="numeric" id="stegInput" class="steg-input" placeholder="t.ex. 8500">
+    </div>
+
+    <div class="kort">
+      <div class="etikett">Tre saker jag är tacksam för</div>
+      <input type="text" class="tacksam-rad" id="tacksam1" placeholder="1.">
+      <input type="text" class="tacksam-rad" id="tacksam2" placeholder="2.">
+      <input type="text" class="tacksam-rad" id="tacksam3" placeholder="3.">
     </div>
 
     <div class="kort">
@@ -418,7 +442,7 @@ function uppdateraPrognos(){
 }
 
 /* ================= idag-vyn ================= */
-function tomPost(){ return {farg:null,somn:null,skarmtid:null,steg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,vanner:false,brak:false,egentid:false,mindfulness:false,traning:false,traningTyp:[],anteckning:""}; }
+function tomPost(){ return {farg:null,somn:null,somnKval:null,skarmtid:null,steg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,vanner:false,brak:false,narhet:false,egentid:false,mindfulness:false,traning:false,traningTyp:[],tacksam:["","",""],anteckning:""}; }
 let aktuell = tomPost();
 
 function laddaDag(){
@@ -432,6 +456,11 @@ function laddaDag(){
   document.getElementById("traningExtra").classList.toggle("visas", aktuell.traning);
   document.querySelectorAll("#traningChips button").forEach(c => c.classList.toggle("vald", aktuell.traningTyp.includes(c.dataset.typ)));
   document.getElementById("anteckning").value = aktuell.anteckning || "";
+  if(typeof aktuell.tacksam === "string") aktuell.tacksam = [aktuell.tacksam, "", ""];
+  if(!Array.isArray(aktuell.tacksam)) aktuell.tacksam = ["","",""];
+  document.getElementById("tacksam1").value = aktuell.tacksam[0] || "";
+  document.getElementById("tacksam2").value = aktuell.tacksam[1] || "";
+  document.getElementById("tacksam3").value = aktuell.tacksam[2] || "";
   const cd = cykeldag(valtDatum);
   document.getElementById("cykelBadge").innerHTML = cd ? "Cykeldag <b>"+cd+"</b>" : "Cykeldag <b>–</b>";
   visaSomn();
@@ -444,6 +473,7 @@ function laddaDag(){
 function visaSomn(){
   document.getElementById("somnVarde").textContent =
     typeof aktuell.somn === "number" ? String(aktuell.somn).replace(".", ",") + " tim" : "–";
+  document.querySelectorAll("#somnKval button").forEach(b => b.classList.toggle("vald", b.dataset.kval === aktuell.somnKval));
 }
 function visaSkarm(){
   const el = document.getElementById("skarmVarde");
@@ -480,7 +510,13 @@ document.getElementById("somnPlus").addEventListener("click", () => {
   aktuell.somn = typeof aktuell.somn === "number" ? Math.min(14, aktuell.somn + 0.5) : 7;
   visaSomn();
 });
-document.getElementById("somnRensa").addEventListener("click", () => { aktuell.somn = null; visaSomn(); });
+document.querySelectorAll("#somnKval button").forEach(b => {
+  b.addEventListener("click", () => {
+    aktuell.somnKval = aktuell.somnKval === b.dataset.kval ? null : b.dataset.kval;
+    document.querySelectorAll("#somnKval button").forEach(x => x.classList.toggle("vald", x.dataset.kval === aktuell.somnKval));
+  });
+});
+document.getElementById("somnRensa").addEventListener("click", () => { aktuell.somn = null; aktuell.somnKval = null; visaSomn(); });
 document.getElementById("skarmMinus").addEventListener("click", () => {
   aktuell.skarmtid = typeof aktuell.skarmtid === "number" ? Math.max(0, aktuell.skarmtid - 15) : 120;
   visaSkarm();
@@ -498,6 +534,11 @@ function flyttaDag(steg){
 }
 document.getElementById("sparaKnapp").addEventListener("click", () => {
   aktuell.anteckning = document.getElementById("anteckning").value.trim();
+  aktuell.tacksam = [
+    document.getElementById("tacksam1").value.trim(),
+    document.getElementById("tacksam2").value.trim(),
+    document.getElementById("tacksam3").value.trim()
+  ];
   const stegRaa = document.getElementById("stegInput").value.replace(/[^\d]/g, "");
   aktuell.steg = stegRaa ? parseInt(stegRaa, 10) : null;
   data[valtDatum] = JSON.parse(JSON.stringify(aktuell));
@@ -545,7 +586,8 @@ const FAKTORER = [
   ["vanner","Umgicks med vänner"],
   ["egentid","Egen tid för mig själv"],
   ["mindfulness","Mindfulness"],
-  ["brak","Bråk med Patrik"]
+  ["brak","Bråk med Patrik"],
+  ["narhet","Närhet med Patrik"]
 ];
 function ritaMonster(){
   const poster = Object.keys(data).map(k => ({k, ...data[k]})).filter(p => p.farg);
@@ -560,6 +602,10 @@ function ritaMonster(){
     if(medSomn.length >= 4){
       jamforelser.push(["Sov minst 7 timmar", medSomn.filter(p => p.somn >= 7), medSomn.filter(p => p.somn < 7), "7+ tim", "&lt;7 tim"]);
     }
+    const medKval = poster.filter(p => p.somnKval);
+    if(medKval.length >= 4){
+      jamforelser.push(["Grön sömnkvalitet", medKval.filter(p => p.somnKval === "g"), medKval.filter(p => p.somnKval !== "g"), "Grön", "Gul/röd"]);
+    }
     const medSkarm = poster.filter(p => typeof p.skarmtid === "number");
     if(medSkarm.length >= 4){
       jamforelser.push(["Skärmtid över 3 timmar", medSkarm.filter(p => p.skarmtid >= 180), medSkarm.filter(p => p.skarmtid < 180), "3+ tim", "&lt;3 tim"]);
@@ -568,6 +614,8 @@ function ritaMonster(){
     if(medSteg.length >= 4){
       jamforelser.push(["Minst 8 000 steg", medSteg.filter(p => p.steg >= 8000), medSteg.filter(p => p.steg < 8000), "8000+", "&lt;8000"]);
     }
+    const harTack = p => Array.isArray(p.tacksam) ? p.tacksam.some(t => t && t.trim()) : !!(p.tacksam && String(p.tacksam).trim());
+    jamforelser.push(["Skrev tacksamhet", poster.filter(harTack), poster.filter(p => !harTack(p)), "Med", "Utan"]);
     for(const [falt, namn] of FAKTORER){
       jamforelser.push([namn, poster.filter(p => p[falt]), poster.filter(p => !p[falt]), "Med", "Utan"]);
     }
