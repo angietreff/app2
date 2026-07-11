@@ -238,6 +238,31 @@
     </div>
 
     <div class="kort">
+      <div class="etikett">Dagens humör – välj en eller flera</div>
+      <div class="chips" id="humorChips">
+        <button data-humor="Glad">Glad</button>
+        <button data-humor="Lycklig">Lycklig</button>
+        <button data-humor="Nöjd">Nöjd</button>
+        <button data-humor="Harmonisk">Harmonisk</button>
+        <button data-humor="Lugn">Lugn</button>
+        <button data-humor="Energisk">Energisk</button>
+        <button data-humor="Trött">Trött</button>
+        <button data-humor="Skör">Skör</button>
+        <button data-humor="Ledsen">Ledsen</button>
+        <button data-humor="Orolig">Orolig</button>
+        <button data-humor="Ångest">Ångest</button>
+        <button data-humor="Överväldigad">Överväldigad</button>
+        <button data-humor="Sur">Sur</button>
+        <button data-humor="Irriterad">Irriterad</button>
+        <button data-humor="Lättretlig">Lättretlig</button>
+        <button data-humor="Arg">Arg</button>
+        <button data-humor="Uppe i varv">Uppe i varv</button>
+        <button data-humor="Rastlös">Rastlös</button>
+        <button data-humor="Utbrändhetshuvudvärk">Utbrändhetshuvudvärk</button>
+      </div>
+    </div>
+
+    <div class="kort">
       <div class="rad"><span class="txt">Mens startade den här dagen</span><button class="vipp mens" data-falt="mens"></button></div>
       <div class="rad"><span class="txt">Kände mig utvilad när jag vaknade</span><button class="vipp" data-falt="utvilad"></button></div>
       <div class="rad"><span class="txt">Åt socker</span><button class="vipp" data-falt="socker"></button></div>
@@ -337,6 +362,10 @@
     <div class="kort">
       <h2>Cykeln</h2>
       <div id="cykelInsikt" class="insikt tomtext">Logga några mensstarter så räknar appen ut var i cykeln dina röda dagar oftast ligger.</div>
+    </div>
+    <div class="kort">
+      <h2>Humör</h2>
+      <div id="humorInsikt" class="insikt tomtext">När du loggat humör på flera dagar syns här vilka känslor som präglar gröna respektive röda dagar.</div>
     </div>
     <div class="kort">
       <h2>Vad hänger ihop med dina dagar?</h2>
@@ -442,7 +471,13 @@ function uppdateraPrognos(){
 }
 
 /* ================= idag-vyn ================= */
-function tomPost(){ return {farg:null,somn:null,somnKval:null,skarmtid:null,steg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,vanner:false,brak:false,narhet:false,egentid:false,mindfulness:false,traning:false,traningTyp:[],tacksam:["","",""],anteckning:""}; }
+function tomPost(){ return {farg:null,humor:[],somn:null,somnKval:null,skarmtid:null,steg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,vanner:false,brak:false,narhet:false,egentid:false,mindfulness:false,traning:false,traningTyp:[],tacksam:["","",""],anteckning:""}; }
+function humorAv(p){
+  const h = Array.isArray(p.humor) ? p.humor.slice() : [];
+  if(p.uppevarv && !h.includes("Uppe i varv")) h.push("Uppe i varv");
+  if(p.lattretlig && !h.includes("Lättretlig")) h.push("Lättretlig");
+  return h;
+}
 let aktuell = tomPost();
 
 function laddaDag(){
@@ -452,6 +487,8 @@ function laddaDag(){
   const under = VDAG[d.getDay()] + (valtDatum === idagStr() ? " · idag" : "");
   document.getElementById("datumUnder").textContent = under;
   document.querySelectorAll(".fargval button").forEach(b => b.classList.toggle("vald", b.dataset.farg === aktuell.farg));
+  if(!Array.isArray(aktuell.humor)) aktuell.humor = [];
+  document.querySelectorAll("#humorChips button").forEach(c => c.classList.toggle("vald", aktuell.humor.includes(c.dataset.humor)));
   document.querySelectorAll(".vipp").forEach(v => v.classList.toggle("pa", !!aktuell[v.dataset.falt]));
   document.getElementById("traningExtra").classList.toggle("visas", aktuell.traning);
   document.querySelectorAll("#traningChips button").forEach(c => c.classList.toggle("vald", aktuell.traningTyp.includes(c.dataset.typ)));
@@ -492,6 +529,14 @@ document.querySelectorAll(".vipp").forEach(v => {
     aktuell[f] = !aktuell[f];
     v.classList.toggle("pa", aktuell[f]);
     if(f === "traning") document.getElementById("traningExtra").classList.toggle("visas", aktuell.traning);
+  });
+});
+document.querySelectorAll("#humorChips button").forEach(c => {
+  c.addEventListener("click", () => {
+    const t = c.dataset.humor;
+    const i = aktuell.humor.indexOf(t);
+    if(i >= 0) aktuell.humor.splice(i,1); else aktuell.humor.push(t);
+    c.classList.toggle("vald", i < 0);
   });
 });
 document.querySelectorAll("#traningChips button").forEach(c => {
@@ -592,6 +637,7 @@ const FAKTORER = [
 function ritaMonster(){
   const poster = Object.keys(data).map(k => ({k, ...data[k]})).filter(p => p.farg);
   ritaVecka();
+  ritaHumor(poster);
   const lista = document.getElementById("faktorLista");
   lista.innerHTML = "";
   if(poster.length < 5){
@@ -660,12 +706,48 @@ function ritaMonster(){
     }
     delar.push(txt + ".");
   }
+  /* förvarning: föregås röda dagar av uppe i varv/lättretlighet? */
+  const rodaAlla = poster.filter(p => p.farg === "r");
+  if(rodaAlla.length >= 3){
+    let traff = 0, tot = 0;
+    for(const p of rodaAlla){
+      const d = franNyckel(p.k); d.setDate(d.getDate() - 1);
+      const igar = data[nyckel(d)];
+      if(igar && igar.farg){
+        tot++;
+        const ih = humorAv(igar);
+        if(ih.includes("Uppe i varv") || ih.includes("Lättretlig")) traff++;
+      }
+    }
+    if(tot >= 3 && traff / tot >= 0.5){
+      delar.push("<b>Förvarning:</b> " + traff + " av " + tot + " röda dagar föregicks av att du kände dig uppe i varv eller lättretlig dagen innan – ett tecken att ta det extra lugnt dagen efter en sådan dag.");
+    }
+  }
   if(delar.length){
     cykelEl.classList.remove("tomtext");
     cykelEl.innerHTML = delar.join(" ");
   } else if(medCykel.length > 0){
     cykelEl.innerHTML = "Cykeldagar räknas nu. Logga minst två mensstarter så kan appen räkna ut cykellängd och ge en prognos.";
   }
+}
+
+/* ================= humörinsikt ================= */
+function ritaHumor(poster){
+  const el = document.getElementById("humorInsikt");
+  const grona = poster.filter(p => p.farg === "g");
+  const roda = poster.filter(p => p.farg === "r");
+  function topp(arr){
+    const c = {};
+    arr.forEach(p => humorAv(p).forEach(h => c[h] = (c[h] || 0) + 1));
+    return Object.entries(c).sort((a,b) => b[1] - a[1]).slice(0,3).map(x => x[0].toLowerCase());
+  }
+  const tg = topp(grona), tr = topp(roda);
+  if(tg.length === 0 && tr.length === 0) return;
+  const delar = [];
+  if(tg.length) delar.push("På <b>gröna dagar</b> känner du dig oftast: " + tg.join(", ") + ".");
+  if(tr.length) delar.push("På <b>röda dagar</b>: " + tr.join(", ") + ".");
+  el.classList.remove("tomtext");
+  el.innerHTML = delar.join(" ");
 }
 
 /* ================= veckosammanfattning ================= */
