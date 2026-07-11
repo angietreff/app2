@@ -124,6 +124,19 @@
   .spara:active{opacity:.85}
   .sparat-msg{text-align:center;font-size:.85rem;color:var(--gron-ljus);height:20px;font-weight:500}
 
+  /* ---------- PMS-banner ---------- */
+  .pms-banner{display:none;background:var(--dag-gul-bg);border:1px solid #E8D5A8;border-radius:var(--radius);padding:11px 14px;font-size:.85rem;line-height:1.5;margin-bottom:14px;color:var(--black)}
+  .pms-banner b{color:var(--gron)}
+
+  /* ---------- sömn-stegare ---------- */
+  .stegare{display:flex;align-items:center;gap:14px;justify-content:center}
+  .stegare button{width:44px;height:44px;border-radius:50%;border:1px solid #DDD4C2;background:#fff;font-size:1.3rem;color:var(--gron);cursor:pointer}
+  .stegare button:active{background:var(--linne)}
+  .somn-varde{min-width:96px;text-align:center;font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:600}
+  .somn-rensa{display:block;margin:8px auto 0;background:none;border:none;font-family:'Karla',sans-serif;font-size:.75rem;color:#8A8272;cursor:pointer;text-decoration:underline}
+  .steg-input{width:100%;border:1px solid #E8E1D3;border-radius:10px;padding:11px 12px;font-family:'Karla',sans-serif;font-size:1rem;background:#fff;color:var(--black);text-align:center}
+  .steg-input:focus{outline:2px solid var(--gron-ljus);outline-offset:1px}
+
   /* ---------- kalender ---------- */
   .kal-huvud{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
   .kal-huvud button{background:none;border:1px solid #E8E1D3;border-radius:10px;width:36px;height:36px;font-size:1rem;color:var(--gron);cursor:pointer}
@@ -203,6 +216,8 @@
       <button id="dagFram" aria-label="Nästa dag">›</button>
     </div>
 
+    <div class="pms-banner" id="pmsBanner"></div>
+
     <div class="kort">
       <div class="etikett">Hur var dagen?</div>
       <div class="fargval">
@@ -220,6 +235,8 @@
       <div class="rad"><span class="txt">Kände mig ensam</span><button class="vipp" data-falt="ensam"></button></div>
       <div class="rad"><span class="txt">Umgicks med vänner</span><button class="vipp" data-falt="vanner"></button></div>
       <div class="rad"><span class="txt">Jag och Patrik bråkade</span><button class="vipp" data-falt="brak"></button></div>
+      <div class="rad"><span class="txt">Hade egen tid för mig själv</span><button class="vipp" data-falt="egentid"></button></div>
+      <div class="rad"><span class="txt">Gjorde mindfulness</span><button class="vipp" data-falt="mindfulness"></button></div>
       <div class="rad"><span class="txt">Tränade</span><button class="vipp" data-falt="traning"></button></div>
       <div id="traningExtra">
         <div class="etikett" style="margin-top:6px">Vad tränade du?</div>
@@ -230,6 +247,31 @@
           <button data-typ="Annat">Annat</button>
         </div>
       </div>
+    </div>
+
+    <div class="kort">
+      <div class="etikett">Sömn i natt</div>
+      <div class="stegare">
+        <button id="somnMinus" aria-label="Mindre sömn">−</button>
+        <div class="somn-varde" id="somnVarde">–</div>
+        <button id="somnPlus" aria-label="Mer sömn">+</button>
+      </div>
+      <button class="somn-rensa" id="somnRensa">Rensa</button>
+    </div>
+
+    <div class="kort">
+      <div class="etikett">Skärmtid på telefonen</div>
+      <div class="stegare">
+        <button id="skarmMinus" aria-label="Mindre skärmtid">−</button>
+        <div class="somn-varde" id="skarmVarde">–</div>
+        <button id="skarmPlus" aria-label="Mer skärmtid">+</button>
+      </div>
+      <button class="somn-rensa" id="skarmRensa">Rensa</button>
+    </div>
+
+    <div class="kort">
+      <div class="etikett">Antal steg</div>
+      <input type="text" inputmode="numeric" id="stegInput" class="steg-input" placeholder="t.ex. 8500">
     </div>
 
     <div class="kort">
@@ -264,6 +306,10 @@
 
   <!-- ============ MÖNSTER ============ -->
   <section class="vy" id="vy-monster">
+    <div class="kort">
+      <h2>Veckan</h2>
+      <div id="veckoKort" class="insikt tomtext">Logga dagar så syns veckans läge här.</div>
+    </div>
     <div class="kort">
       <h2>Cykeln</h2>
       <div id="cykelInsikt" class="insikt tomtext">Logga några mensstarter så räknar appen ut var i cykeln dina röda dagar oftast ligger.</div>
@@ -333,8 +379,46 @@ function cykeldag(datumStr){
   return diff + 1;
 }
 
+/* ================= cykelstatistik & PMS-prognos ================= */
+function cykelStat(){
+  const s = Object.keys(data).filter(k => data[k].mens).sort();
+  const gaps = [];
+  for(let i = 1; i < s.length; i++){
+    const g = Math.round((franNyckel(s[i]) - franNyckel(s[i-1])) / 86400000);
+    if(g >= 15 && g <= 60) gaps.push(g);
+  }
+  const sen = gaps.slice(-3);
+  return { senaste: s[s.length-1] || null, avg: sen.length ? Math.round(sen.reduce((a,b) => a+b, 0) / sen.length) : null };
+}
+function rodSnitt(){
+  const cds = Object.keys(data).filter(k => data[k].farg === "r").map(k => cykeldag(k)).filter(Boolean);
+  if(cds.length < 2) return null;
+  return Math.round(cds.reduce((a,b) => a+b, 0) / cds.length);
+}
+function uppdateraPrognos(){
+  const el = document.getElementById("pmsBanner");
+  const st = cykelStat();
+  const cd = cykeldag(valtDatum);
+  let html = "";
+  if(st.senaste && st.avg){
+    const nasta = franNyckel(st.senaste); nasta.setDate(nasta.getDate() + st.avg);
+    const kvar = Math.round((nasta - franNyckel(valtDatum)) / 86400000);
+    const rs = rodSnitt();
+    const iFonster = (rs && cd && Math.abs(cd - rs) <= 3) || (kvar >= 0 && kvar <= 5);
+    if(iFonster){
+      html = "<b>PMS-fönster.</b> ";
+      if(kvar >= 0) html += "Mens beräknas om " + kvar + " dag" + (kvar === 1 ? "" : "ar") + " (" + nasta.getDate() + " " + MAN[nasta.getMonth()] + ").";
+      else html += "Mens väntas vilken dag som helst.";
+      if(rs) html += " Dina röda dagar brukar ligga runt cykeldag " + rs + ".";
+      html += " Känns det tungt nu är det troligen hormonerna – inte du.";
+    }
+  }
+  el.innerHTML = html;
+  el.style.display = html ? "block" : "none";
+}
+
 /* ================= idag-vyn ================= */
-function tomPost(){ return {farg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,vanner:false,brak:false,traning:false,traningTyp:[],anteckning:""}; }
+function tomPost(){ return {farg:null,somn:null,skarmtid:null,steg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,vanner:false,brak:false,egentid:false,mindfulness:false,traning:false,traningTyp:[],anteckning:""}; }
 let aktuell = tomPost();
 
 function laddaDag(){
@@ -350,7 +434,22 @@ function laddaDag(){
   document.getElementById("anteckning").value = aktuell.anteckning || "";
   const cd = cykeldag(valtDatum);
   document.getElementById("cykelBadge").innerHTML = cd ? "Cykeldag <b>"+cd+"</b>" : "Cykeldag <b>–</b>";
+  visaSomn();
+  visaSkarm();
+  document.getElementById("stegInput").value = typeof aktuell.steg === "number" ? aktuell.steg : "";
+  uppdateraPrognos();
   document.getElementById("sparatMsg").textContent = "";
+}
+
+function visaSomn(){
+  document.getElementById("somnVarde").textContent =
+    typeof aktuell.somn === "number" ? String(aktuell.somn).replace(".", ",") + " tim" : "–";
+}
+function visaSkarm(){
+  const el = document.getElementById("skarmVarde");
+  if(typeof aktuell.skarmtid !== "number"){ el.textContent = "–"; return; }
+  const h = Math.floor(aktuell.skarmtid / 60), m = aktuell.skarmtid % 60;
+  el.textContent = h > 0 ? h + " tim" + (m ? " " + m + " min" : "") : m + " min";
 }
 
 document.querySelectorAll(".fargval button").forEach(b => {
@@ -373,6 +472,24 @@ document.querySelectorAll("#traningChips button").forEach(c => {
     c.classList.toggle("vald", i < 0);
   });
 });
+document.getElementById("somnMinus").addEventListener("click", () => {
+  aktuell.somn = typeof aktuell.somn === "number" ? Math.max(0, aktuell.somn - 0.5) : 7;
+  visaSomn();
+});
+document.getElementById("somnPlus").addEventListener("click", () => {
+  aktuell.somn = typeof aktuell.somn === "number" ? Math.min(14, aktuell.somn + 0.5) : 7;
+  visaSomn();
+});
+document.getElementById("somnRensa").addEventListener("click", () => { aktuell.somn = null; visaSomn(); });
+document.getElementById("skarmMinus").addEventListener("click", () => {
+  aktuell.skarmtid = typeof aktuell.skarmtid === "number" ? Math.max(0, aktuell.skarmtid - 15) : 120;
+  visaSkarm();
+});
+document.getElementById("skarmPlus").addEventListener("click", () => {
+  aktuell.skarmtid = typeof aktuell.skarmtid === "number" ? Math.min(720, aktuell.skarmtid + 15) : 120;
+  visaSkarm();
+});
+document.getElementById("skarmRensa").addEventListener("click", () => { aktuell.skarmtid = null; visaSkarm(); });
 document.getElementById("dagBak").addEventListener("click", () => flyttaDag(-1));
 document.getElementById("dagFram").addEventListener("click", () => flyttaDag(1));
 function flyttaDag(steg){
@@ -381,11 +498,14 @@ function flyttaDag(steg){
 }
 document.getElementById("sparaKnapp").addEventListener("click", () => {
   aktuell.anteckning = document.getElementById("anteckning").value.trim();
+  const stegRaa = document.getElementById("stegInput").value.replace(/[^\d]/g, "");
+  aktuell.steg = stegRaa ? parseInt(stegRaa, 10) : null;
   data[valtDatum] = JSON.parse(JSON.stringify(aktuell));
   lagring.spara(data);
   document.getElementById("sparatMsg").textContent = "Sparat ✓";
   const cd = cykeldag(valtDatum);
   document.getElementById("cykelBadge").innerHTML = cd ? "Cykeldag <b>"+cd+"</b>" : "Cykeldag <b>–</b>";
+  uppdateraPrognos();
   setTimeout(() => { document.getElementById("sparatMsg").textContent = ""; }, 1800);
 });
 
@@ -423,18 +543,35 @@ const FAKTORER = [
   ["traning","Tränade"],
   ["ensam","Kände mig ensam"],
   ["vanner","Umgicks med vänner"],
+  ["egentid","Egen tid för mig själv"],
+  ["mindfulness","Mindfulness"],
   ["brak","Bråk med Patrik"]
 ];
 function ritaMonster(){
   const poster = Object.keys(data).map(k => ({k, ...data[k]})).filter(p => p.farg);
+  ritaVecka();
   const lista = document.getElementById("faktorLista");
   lista.innerHTML = "";
   if(poster.length < 5){
     lista.innerHTML = "<p class='tomtext'>Logga minst fem dagar så börjar mönstren synas här.</p>";
   } else {
+    const jamforelser = [];
+    const medSomn = poster.filter(p => typeof p.somn === "number");
+    if(medSomn.length >= 4){
+      jamforelser.push(["Sov minst 7 timmar", medSomn.filter(p => p.somn >= 7), medSomn.filter(p => p.somn < 7), "7+ tim", "&lt;7 tim"]);
+    }
+    const medSkarm = poster.filter(p => typeof p.skarmtid === "number");
+    if(medSkarm.length >= 4){
+      jamforelser.push(["Skärmtid över 3 timmar", medSkarm.filter(p => p.skarmtid >= 180), medSkarm.filter(p => p.skarmtid < 180), "3+ tim", "&lt;3 tim"]);
+    }
+    const medSteg = poster.filter(p => typeof p.steg === "number");
+    if(medSteg.length >= 4){
+      jamforelser.push(["Minst 8 000 steg", medSteg.filter(p => p.steg >= 8000), medSteg.filter(p => p.steg < 8000), "8000+", "&lt;8000"]);
+    }
     for(const [falt, namn] of FAKTORER){
-      const med = poster.filter(p => p[falt]);
-      const utan = poster.filter(p => !p[falt]);
+      jamforelser.push([namn, poster.filter(p => p[falt]), poster.filter(p => !p[falt]), "Med", "Utan"]);
+    }
+    for(const [namn, med, utan, lblMed, lblUtan] of jamforelser){
       if(med.length === 0 || utan.length === 0) continue;
       const snittMed = Math.round(med.reduce((s,p) => s + FARGVARDE[p.farg], 0) / med.length);
       const snittUtan = Math.round(utan.reduce((s,p) => s + FARGVARDE[p.farg], 0) / utan.length);
@@ -447,29 +584,73 @@ function ritaMonster(){
       el.className = "faktor";
       el.innerHTML =
         "<div class='namn'><span>"+namn+"</span><span class='delta "+deltaKlass+"'>"+deltaTxt+"</span></div>" +
-        stapel("Med", snittMed, med.length) + stapel("Utan", snittUtan, utan.length);
+        stapel(lblMed, snittMed, med.length) + stapel(lblUtan, snittUtan, utan.length);
       lista.appendChild(el);
     }
     if(!lista.children.length) lista.innerHTML = "<p class='tomtext'>Fler dagar behövs för att jämföra faktorerna.</p>";
   }
-  /* cykelinsikt */
+  /* cykelinsikt med prognos */
   const cykelEl = document.getElementById("cykelInsikt");
+  const st = cykelStat();
   const medCykel = poster.map(p => ({...p, cd: cykeldag(p.k)})).filter(p => p.cd);
   const roda = medCykel.filter(p => p.farg === "r");
   const grona = medCykel.filter(p => p.farg === "g");
+  const delar = [];
+  if(st.avg && st.senaste){
+    delar.push("Din cykel är i snitt <b>" + st.avg + " dagar</b>.");
+    const nasta = franNyckel(st.senaste); nasta.setDate(nasta.getDate() + st.avg);
+    const kvar = Math.round((nasta - franNyckel(idagStr())) / 86400000);
+    if(kvar >= 0) delar.push("Nästa mens beräknas <b>" + nasta.getDate() + " " + MAN[nasta.getMonth()] + "</b> (om " + kvar + " dag" + (kvar === 1 ? "" : "ar") + ").");
+    else delar.push("Mens beräknades <b>" + nasta.getDate() + " " + MAN[nasta.getMonth()] + "</b>. Cykler under amning är ofta oregelbundna, så prognosen är ungefärlig.");
+  }
   if(medCykel.length >= 10 && roda.length >= 2){
     const snittRod = Math.round(roda.reduce((s,p) => s + p.cd, 0) / roda.length);
-    let txt = "Dina röda dagar ligger i snitt runt <b>cykeldag " + snittRod + "</b>";
+    let txt = "Röda dagar ligger i snitt runt <b>cykeldag " + snittRod + "</b>";
     if(grona.length >= 2){
       const snittGron = Math.round(grona.reduce((s,p) => s + p.cd, 0) / grona.length);
-      txt += ", medan gröna dagar i snitt ligger runt <b>dag " + snittGron + "</b>";
+      txt += ", gröna runt <b>dag " + snittGron + "</b>";
     }
-    txt += ". Ju fler dagar du loggar, desto tydligare blir bilden.";
-    cykelEl.classList.remove("tomtext");
-    cykelEl.innerHTML = txt;
-  } else if(medCykel.length > 0){
-    cykelEl.innerHTML = "Cykeldagar räknas nu. Efter ungefär en hel cykel med loggade dagar syns var dina röda dagar brukar hamna.";
+    delar.push(txt + ".");
   }
+  if(delar.length){
+    cykelEl.classList.remove("tomtext");
+    cykelEl.innerHTML = delar.join(" ");
+  } else if(medCykel.length > 0){
+    cykelEl.innerHTML = "Cykeldagar räknas nu. Logga minst två mensstarter så kan appen räkna ut cykellängd och ge en prognos.";
+  }
+}
+
+/* ================= veckosammanfattning ================= */
+function ritaVecka(){
+  const el = document.getElementById("veckoKort");
+  const nu = new Date();
+  const veckodag = (nu.getDay() + 6) % 7; // 0 = måndag
+  const start = new Date(nu.getFullYear(), nu.getMonth(), nu.getDate() - veckodag);
+  const forraStart = new Date(start); forraStart.setDate(start.getDate() - 7);
+  function rakna(fr){
+    const c = {g:0, y:0, r:0, sum:0, n:0};
+    for(let i = 0; i < 7; i++){
+      const d = new Date(fr); d.setDate(fr.getDate() + i);
+      const p = data[nyckel(d)];
+      if(p && p.farg){ c[p.farg]++; c.sum += FARGVARDE[p.farg]; c.n++; }
+    }
+    return c;
+  }
+  const denna = rakna(start), forra = rakna(forraStart);
+  if(denna.n === 0 && forra.n === 0){
+    el.classList.add("tomtext");
+    el.textContent = "Logga dagar så syns veckans läge här.";
+    return;
+  }
+  let txt = "Den här veckan: <b>" + denna.g + " gröna</b>, " + denna.y + " gula, " + denna.r + " röda (" + denna.n + " loggade dagar).";
+  if(denna.n > 0 && forra.n > 0){
+    const diff = Math.round(denna.sum / denna.n) - Math.round(forra.sum / forra.n);
+    if(diff >= 10) txt += " Bättre än förra veckan 🌿";
+    else if(diff <= -10) txt += " Tyngre än förra veckan – var extra snäll mot dig själv.";
+    else txt += " Ungefär som förra veckan.";
+  }
+  el.classList.remove("tomtext");
+  el.innerHTML = txt;
 }
 function stapel(lbl, varde, antal){
   return "<div class='stapelrad'><span class='lbl'>"+lbl+" ("+antal+")</span><div class='spar'><div class='fyll' style='width:"+varde+"%'></div></div><span class='varde'>"+varde+"</span></div>";
