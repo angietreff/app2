@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1F3A2D">
+<title>Dagbok</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gron:#1F3A2D;      /* djup flaskgrön */
+    --gron-ljus:#3E6B4F;
+    --massing:#B08D4F;   /* mässing */
+    --ivory:#FAF6EF;     /* elfenben */
+    --linne:#F1EADC;
+    --black:#26241F;
+    --dag-gron:#4C7A5C;
+    --dag-gul:#D9A441;
+    --dag-rod:#B4515E;   /* plommonröd */
+    --dag-gron-bg:#E3EDE5;
+    --dag-gul-bg:#F6EBD3;
+    --dag-rod-bg:#F0DEE1;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{font-size:16px}
+  body{
+    font-family:'Karla',sans-serif;color:var(--black);background:var(--ivory);
+    min-height:100vh;padding-bottom:96px;
+  }
+  header{
+    background:var(--gron);color:var(--ivory);
+    padding:calc(env(safe-area-inset-top,0px) + 22px) 20px 18px;
+  }
+  header h1{
+    font-family:'Cormorant Garamond',serif;font-weight:600;font-size:1.7rem;
+    letter-spacing:.02em;
+  }
+  header .sub{font-size:.8rem;opacity:.75;margin-top:2px;letter-spacing:.06em;text-transform:uppercase}
+  header .cykel-badge{
+    display:inline-block;margin-top:10px;padding:5px 12px;border:1px solid rgba(250,246,239,.35);
+    border-radius:999px;font-size:.78rem;letter-spacing:.04em;
+  }
+  header .cykel-badge b{color:var(--massing);font-weight:700}
+  main{padding:18px 16px 0;max-width:560px;margin:0 auto}
+  .vy{display:none}
+  .vy.aktiv{display:block;animation:fadein .18s ease}
+  @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* ---------- kort & rubriker ---------- */
+  .kort{background:#fff;border:1px solid #E8E1D3;border-radius:var(--radius);padding:16px;margin-bottom:14px}
+  .kort h2{
+    font-family:'Cormorant Garamond',serif;font-weight:600;font-size:1.15rem;margin-bottom:12px;
+  }
+  .etikett{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:#8A8272;margin-bottom:8px}
+
+  /* ---------- datumrad ---------- */
+  .datumrad{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+  .datumrad button{
+    background:#fff;border:1px solid #E8E1D3;border-radius:10px;width:38px;height:38px;
+    font-size:1rem;color:var(--gron);cursor:pointer;font-family:inherit;
+  }
+  .datumrad .datum{
+    flex:1;text-align:center;font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:600;
+  }
+  .datumrad .datum small{display:block;font-family:'Karla',sans-serif;font-size:.72rem;color:#8A8272;letter-spacing:.06em;text-transform:uppercase;font-weight:500}
+
+  /* ---------- färgval ---------- */
+  .fargval{display:flex;gap:10px}
+  .fargval button{
+    flex:1;border:2px solid transparent;border-radius:var(--radius);padding:16px 6px 13px;
+    cursor:pointer;font-family:'Karla',sans-serif;font-size:.82rem;font-weight:500;color:var(--black);
+    display:flex;flex-direction:column;align-items:center;gap:8px;transition:transform .08s ease;
+  }
+  .fargval button:active{transform:scale(.96)}
+  .fargval .prick{width:26px;height:26px;border-radius:50%}
+  .fargval .g{background:var(--dag-gron-bg)} .fargval .g .prick{background:var(--dag-gron)}
+  .fargval .y{background:var(--dag-gul-bg)} .fargval .y .prick{background:var(--dag-gul)}
+  .fargval .r{background:var(--dag-rod-bg)} .fargval .r .prick{background:var(--dag-rod)}
+  .fargval .g.vald{border-color:var(--dag-gron)}
+  .fargval .y.vald{border-color:var(--dag-gul)}
+  .fargval .r.vald{border-color:var(--dag-rod)}
+
+  /* ---------- ja/nej-rader ---------- */
+  .rad{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #F0EADC}
+  .rad:last-child{border-bottom:none}
+  .rad .txt{font-size:.95rem}
+  .vipp{
+    position:relative;width:50px;height:29px;border-radius:999px;background:#E4DCCB;border:none;cursor:pointer;
+    transition:background .15s ease;flex-shrink:0;
+  }
+  .vipp::after{
+    content:"";position:absolute;top:3px;left:3px;width:23px;height:23px;border-radius:50%;
+    background:#fff;transition:transform .15s ease;box-shadow:0 1px 3px rgba(0,0,0,.18);
+  }
+  .vipp.pa{background:var(--gron-ljus)}
+  .vipp.pa::after{transform:translateX(21px)}
+  .vipp.mens.pa{background:var(--dag-rod)}
+
+  /* ---------- träningstyp ---------- */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chips button{
+    border:1px solid #DDD4C2;background:#fff;border-radius:999px;padding:7px 14px;
+    font-family:'Karla',sans-serif;font-size:.85rem;cursor:pointer;color:var(--black);
+  }
+  .chips button.vald{background:var(--gron);border-color:var(--gron);color:var(--ivory)}
+  #traningExtra{display:none;padding-top:4px}
+  #traningExtra.visas{display:block}
+
+  textarea{
+    width:100%;border:1px solid #E8E1D3;border-radius:10px;padding:10px 12px;font-family:'Karla',sans-serif;
+    font-size:.95rem;resize:vertical;min-height:64px;background:#fff;color:var(--black);
+  }
+  textarea:focus{outline:2px solid var(--gron-ljus);outline-offset:1px}
+
+  .spara{
+    width:100%;background:var(--gron);color:var(--ivory);border:none;border-radius:var(--radius);
+    padding:15px;font-family:'Karla',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.03em;
+    cursor:pointer;margin:4px 0 8px;
+  }
+  .spara:active{opacity:.85}
+  .sparat-msg{text-align:center;font-size:.85rem;color:var(--gron-ljus);height:20px;font-weight:500}
+
+  /* ---------- kalender ---------- */
+  .kal-huvud{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .kal-huvud button{background:none;border:1px solid #E8E1D3;border-radius:10px;width:36px;height:36px;font-size:1rem;color:var(--gron);cursor:pointer}
+  .kal-huvud .manad{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:600;text-transform:capitalize}
+  .kal-veckodagar,.kal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .kal-veckodagar div{text-align:center;font-size:.68rem;letter-spacing:.06em;color:#8A8272;text-transform:uppercase;padding-bottom:4px}
+  .kal-dag{
+    aspect-ratio:1;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-size:.85rem;background:#F5F0E5;color:#B5AC99;cursor:pointer;position:relative;border:2px solid transparent;
+  }
+  .kal-dag.har{color:var(--black);font-weight:500}
+  .kal-dag.c-g{background:var(--dag-gron-bg)}
+  .kal-dag.c-y{background:var(--dag-gul-bg)}
+  .kal-dag.c-r{background:var(--dag-rod-bg)}
+  .kal-dag.c-g .pyt{background:var(--dag-gron)}
+  .kal-dag.c-y .pyt{background:var(--dag-gul)}
+  .kal-dag.c-r .pyt{background:var(--dag-rod)}
+  .kal-dag .pyt{width:7px;height:7px;border-radius:50%;margin-top:3px}
+  .kal-dag.idag{border-color:var(--massing)}
+  .kal-dag .mensmark{position:absolute;top:4px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--dag-rod)}
+  .kal-dag.tom{background:transparent;cursor:default}
+  .kal-legend{display:flex;gap:14px;justify-content:center;margin-top:14px;font-size:.75rem;color:#8A8272;flex-wrap:wrap}
+  .kal-legend span{display:flex;align-items:center;gap:5px}
+  .kal-legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+  /* ---------- mönster ---------- */
+  .faktor{padding:12px 0;border-bottom:1px solid #F0EADC}
+  .faktor:last-child{border-bottom:none}
+  .faktor .namn{font-size:.92rem;margin-bottom:7px;display:flex;justify-content:space-between}
+  .faktor .namn .delta{font-weight:700}
+  .delta.battre{color:var(--dag-gron)} .delta.samre{color:var(--dag-rod)} .delta.neutral{color:#8A8272}
+  .stapelrad{display:flex;align-items:center;gap:8px;margin:3px 0}
+  .stapelrad .lbl{width:52px;font-size:.72rem;color:#8A8272}
+  .stapelrad .spar{flex:1;height:9px;border-radius:999px;background:#F0EADC;overflow:hidden}
+  .stapelrad .fyll{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--dag-rod),var(--dag-gul) 50%,var(--dag-gron))}
+  .stapelrad .varde{width:30px;font-size:.72rem;color:#8A8272;text-align:right}
+  .insikt{font-size:.9rem;line-height:1.5;color:var(--black)}
+  .insikt b{color:var(--gron)}
+  .tomtext{font-size:.9rem;color:#8A8272;line-height:1.5}
+
+  /* ---------- data ---------- */
+  .dataknappar{display:flex;gap:10px}
+  .dataknappar button,.dataknappar label{
+    flex:1;text-align:center;border:1px solid #DDD4C2;background:#fff;border-radius:10px;padding:11px;
+    font-family:'Karla',sans-serif;font-size:.85rem;cursor:pointer;color:var(--gron);font-weight:500;
+  }
+  #importFil{display:none}
+
+  /* ---------- flikar ---------- */
+  nav{
+    position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #E8E1D3;
+    display:flex;padding-bottom:env(safe-area-inset-bottom,0px);z-index:10;
+  }
+  nav button{
+    flex:1;background:none;border:none;padding:12px 0 10px;font-family:'Karla',sans-serif;
+    font-size:.72rem;letter-spacing:.05em;color:#9A9180;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  nav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  nav button.aktiv{color:var(--gron);font-weight:700}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Dagbok</h1>
+  <div class="sub">grön · gul · röd</div>
+  <div class="cykel-badge" id="cykelBadge">Cykeldag <b>–</b></div>
+</header>
+
+<main>
+
+  <!-- ============ IDAG ============ -->
+  <section class="vy aktiv" id="vy-idag">
+    <div class="datumrad">
+      <button id="dagBak" aria-label="Föregående dag">‹</button>
+      <div class="datum"><span id="datumText"></span><small id="datumUnder"></small></div>
+      <button id="dagFram" aria-label="Nästa dag">›</button>
+    </div>
+
+    <div class="kort">
+      <div class="etikett">Hur var dagen?</div>
+      <div class="fargval">
+        <button class="g" data-farg="g"><span class="prick"></span>Grön</button>
+        <button class="y" data-farg="y"><span class="prick"></span>Gul</button>
+        <button class="r" data-farg="r"><span class="prick"></span>Röd</button>
+      </div>
+    </div>
+
+    <div class="kort">
+      <div class="rad"><span class="txt">Mens startade den här dagen</span><button class="vipp mens" data-falt="mens"></button></div>
+      <div class="rad"><span class="txt">Kände mig utvilad när jag vaknade</span><button class="vipp" data-falt="utvilad"></button></div>
+      <div class="rad"><span class="txt">Åt socker</span><button class="vipp" data-falt="socker"></button></div>
+      <div class="rad"><span class="txt">Drack alkohol</span><button class="vipp" data-falt="alkohol"></button></div>
+      <div class="rad"><span class="txt">Kände mig ensam</span><button class="vipp" data-falt="ensam"></button></div>
+      <div class="rad"><span class="txt">Umgicks med vänner</span><button class="vipp" data-falt="vanner"></button></div>
+      <div class="rad"><span class="txt">Jag och Patrik bråkade</span><button class="vipp" data-falt="brak"></button></div>
+      <div class="rad"><span class="txt">Tränade</span><button class="vipp" data-falt="traning"></button></div>
+      <div id="traningExtra">
+        <div class="etikett" style="margin-top:6px">Vad tränade du?</div>
+        <div class="chips" id="traningChips">
+          <button data-typ="Styrka">Styrka</button>
+          <button data-typ="Löpning">Löpning</button>
+          <button data-typ="Promenad">Promenad</button>
+          <button data-typ="Annat">Annat</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="kort">
+      <div class="etikett">Anteckning (valfritt)</div>
+      <textarea id="anteckning" placeholder="Något du vill minnas om dagen…"></textarea>
+    </div>
+
+    <button class="spara" id="sparaKnapp">Spara dagen</button>
+    <div class="sparat-msg" id="sparatMsg"></div>
+  </section>
+
+  <!-- ============ KALENDER ============ -->
+  <section class="vy" id="vy-kalender">
+    <div class="kort">
+      <div class="kal-huvud">
+        <button id="manBak" aria-label="Föregående månad">‹</button>
+        <div class="manad" id="manadText"></div>
+        <button id="manFram" aria-label="Nästa månad">›</button>
+      </div>
+      <div class="kal-veckodagar">
+        <div>M</div><div>T</div><div>O</div><div>T</div><div>F</div><div>L</div><div>S</div>
+      </div>
+      <div class="kal-grid" id="kalGrid"></div>
+      <div class="kal-legend">
+        <span><i style="background:var(--dag-gron)"></i>Grön</span>
+        <span><i style="background:var(--dag-gul)"></i>Gul</span>
+        <span><i style="background:var(--dag-rod)"></i>Röd</span>
+        <span><i style="background:var(--dag-rod);outline:2px solid var(--dag-rod-bg)"></i> uppe i hörnet = mens</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MÖNSTER ============ -->
+  <section class="vy" id="vy-monster">
+    <div class="kort">
+      <h2>Cykeln</h2>
+      <div id="cykelInsikt" class="insikt tomtext">Logga några mensstarter så räknar appen ut var i cykeln dina röda dagar oftast ligger.</div>
+    </div>
+    <div class="kort">
+      <h2>Vad hänger ihop med dina dagar?</h2>
+      <p class="tomtext" style="margin-bottom:6px">Snittfärg på dagar <em>med</em> respektive <em>utan</em> varje faktor (0 = röd, 100 = grön).</p>
+      <div id="faktorLista"></div>
+    </div>
+    <div class="kort">
+      <h2>Data</h2>
+      <div class="dataknappar">
+        <button id="exportKnapp">Exportera</button>
+        <label for="importFil">Importera</label>
+        <input type="file" id="importFil" accept=".json">
+      </div>
+      <p class="tomtext" style="margin-top:10px">Allt sparas lokalt i din telefon. Exportera då och då som säkerhetskopia.</p>
+    </div>
+  </section>
+
+</main>
+
+<nav>
+  <button class="aktiv" data-vy="idag">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    Idag
+  </button>
+  <button data-vy="kalender">
+    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+    Kalender
+  </button>
+  <button data-vy="monster">
+    <svg viewBox="0 0 24 24"><path d="M4 19L9 12l4 4 7-9"/><path d="M4 21h16"/></svg>
+    Mönster
+  </button>
+</nav>
+
+<script>
+/* ================= lagring (localStorage med fallback) ================= */
+const NYCKEL = "dagbok-v1";
+let minnesFallback = {};
+const lagring = {
+  las(){ try{ return JSON.parse(localStorage.getItem(NYCKEL)) || {}; }catch(e){ return minnesFallback; } },
+  spara(d){ try{ localStorage.setItem(NYCKEL, JSON.stringify(d)); }catch(e){ minnesFallback = d; } }
+};
+let data = lagring.las(); // { "2026-07-11": {farg,mens,utvilad,socker,alkohol,ensam,vanner,brak,traning,traningTyp:[],anteckning} }
+
+/* ================= datumhjälp ================= */
+const MAN = ["januari","februari","mars","april","maj","juni","juli","augusti","september","oktober","november","december"];
+const VDAG = ["söndag","måndag","tisdag","onsdag","torsdag","fredag","lördag"];
+function nyckel(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function franNyckel(s){ const [y,m,dd]=s.split("-").map(Number); return new Date(y,m-1,dd); }
+function idagStr(){ return nyckel(new Date()); }
+
+let valtDatum = idagStr();
+let kalAr, kalManad;
+{ const nu = new Date(); kalAr = nu.getFullYear(); kalManad = nu.getMonth(); }
+
+/* ================= cykeldag ================= */
+function cykeldag(datumStr){
+  const mensdagar = Object.keys(data).filter(k => data[k].mens).sort();
+  let senaste = null;
+  for(const m of mensdagar){ if(m <= datumStr) senaste = m; }
+  if(!senaste) return null;
+  const diff = Math.round((franNyckel(datumStr) - franNyckel(senaste)) / 86400000);
+  if(diff > 59) return null;
+  return diff + 1;
+}
+
+/* ================= idag-vyn ================= */
+function tomPost(){ return {farg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,vanner:false,brak:false,traning:false,traningTyp:[],anteckning:""}; }
+let aktuell = tomPost();
+
+function laddaDag(){
+  aktuell = Object.assign(tomPost(), data[valtDatum] ? JSON.parse(JSON.stringify(data[valtDatum])) : {});
+  const d = franNyckel(valtDatum);
+  document.getElementById("datumText").textContent = d.getDate() + " " + MAN[d.getMonth()];
+  const under = VDAG[d.getDay()] + (valtDatum === idagStr() ? " · idag" : "");
+  document.getElementById("datumUnder").textContent = under;
+  document.querySelectorAll(".fargval button").forEach(b => b.classList.toggle("vald", b.dataset.farg === aktuell.farg));
+  document.querySelectorAll(".vipp").forEach(v => v.classList.toggle("pa", !!aktuell[v.dataset.falt]));
+  document.getElementById("traningExtra").classList.toggle("visas", aktuell.traning);
+  document.querySelectorAll("#traningChips button").forEach(c => c.classList.toggle("vald", aktuell.traningTyp.includes(c.dataset.typ)));
+  document.getElementById("anteckning").value = aktuell.anteckning || "";
+  const cd = cykeldag(valtDatum);
+  document.getElementById("cykelBadge").innerHTML = cd ? "Cykeldag <b>"+cd+"</b>" : "Cykeldag <b>–</b>";
+  document.getElementById("sparatMsg").textContent = "";
+}
+
+document.querySelectorAll(".fargval button").forEach(b => {
+  b.addEventListener("click", () => { aktuell.farg = b.dataset.farg;
+    document.querySelectorAll(".fargval button").forEach(x => x.classList.toggle("vald", x === b)); });
+});
+document.querySelectorAll(".vipp").forEach(v => {
+  v.addEventListener("click", () => {
+    const f = v.dataset.falt;
+    aktuell[f] = !aktuell[f];
+    v.classList.toggle("pa", aktuell[f]);
+    if(f === "traning") document.getElementById("traningExtra").classList.toggle("visas", aktuell.traning);
+  });
+});
+document.querySelectorAll("#traningChips button").forEach(c => {
+  c.addEventListener("click", () => {
+    const t = c.dataset.typ;
+    const i = aktuell.traningTyp.indexOf(t);
+    if(i >= 0) aktuell.traningTyp.splice(i,1); else aktuell.traningTyp.push(t);
+    c.classList.toggle("vald", i < 0);
+  });
+});
+document.getElementById("dagBak").addEventListener("click", () => flyttaDag(-1));
+document.getElementById("dagFram").addEventListener("click", () => flyttaDag(1));
+function flyttaDag(steg){
+  const d = franNyckel(valtDatum); d.setDate(d.getDate() + steg);
+  valtDatum = nyckel(d); laddaDag();
+}
+document.getElementById("sparaKnapp").addEventListener("click", () => {
+  aktuell.anteckning = document.getElementById("anteckning").value.trim();
+  data[valtDatum] = JSON.parse(JSON.stringify(aktuell));
+  lagring.spara(data);
+  document.getElementById("sparatMsg").textContent = "Sparat ✓";
+  const cd = cykeldag(valtDatum);
+  document.getElementById("cykelBadge").innerHTML = cd ? "Cykeldag <b>"+cd+"</b>" : "Cykeldag <b>–</b>";
+  setTimeout(() => { document.getElementById("sparatMsg").textContent = ""; }, 1800);
+});
+
+/* ================= kalender ================= */
+function ritaKalender(){
+  document.getElementById("manadText").textContent = MAN[kalManad] + " " + kalAr;
+  const grid = document.getElementById("kalGrid");
+  grid.innerHTML = "";
+  const forsta = new Date(kalAr, kalManad, 1);
+  let start = forsta.getDay() - 1; if(start < 0) start = 6; // måndag först
+  const dagar = new Date(kalAr, kalManad + 1, 0).getDate();
+  for(let i = 0; i < start; i++){ const t = document.createElement("div"); t.className = "kal-dag tom"; grid.appendChild(t); }
+  for(let d = 1; d <= dagar; d++){
+    const k = kalAr+"-"+String(kalManad+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+    const post = data[k];
+    const cell = document.createElement("div");
+    cell.className = "kal-dag";
+    if(post && post.farg){ cell.classList.add("har","c-"+post.farg); }
+    if(k === idagStr()) cell.classList.add("idag");
+    cell.innerHTML = "<span>"+d+"</span>" + (post && post.farg ? "<span class='pyt'></span>" : "");
+    if(post && post.mens){ const m = document.createElement("span"); m.className = "mensmark"; cell.appendChild(m); }
+    cell.addEventListener("click", () => { valtDatum = k; laddaDag(); bytVy("idag"); });
+    grid.appendChild(cell);
+  }
+}
+document.getElementById("manBak").addEventListener("click", () => { kalManad--; if(kalManad < 0){ kalManad = 11; kalAr--; } ritaKalender(); });
+document.getElementById("manFram").addEventListener("click", () => { kalManad++; if(kalManad > 11){ kalManad = 0; kalAr++; } ritaKalender(); });
+
+/* ================= mönster ================= */
+const FARGVARDE = { g:100, y:50, r:0 };
+const FAKTORER = [
+  ["utvilad","Utvilad vid uppvaknande"],
+  ["socker","Åt socker"],
+  ["alkohol","Drack alkohol"],
+  ["traning","Tränade"],
+  ["ensam","Kände mig ensam"],
+  ["vanner","Umgicks med vänner"],
+  ["brak","Bråk med Patrik"]
+];
+function ritaMonster(){
+  const poster = Object.keys(data).map(k => ({k, ...data[k]})).filter(p => p.farg);
+  const lista = document.getElementById("faktorLista");
+  lista.innerHTML = "";
+  if(poster.length < 5){
+    lista.innerHTML = "<p class='tomtext'>Logga minst fem dagar så börjar mönstren synas här.</p>";
+  } else {
+    for(const [falt, namn] of FAKTORER){
+      const med = poster.filter(p => p[falt]);
+      const utan = poster.filter(p => !p[falt]);
+      if(med.length === 0 || utan.length === 0) continue;
+      const snittMed = Math.round(med.reduce((s,p) => s + FARGVARDE[p.farg], 0) / med.length);
+      const snittUtan = Math.round(utan.reduce((s,p) => s + FARGVARDE[p.farg], 0) / utan.length);
+      const diff = snittMed - snittUtan;
+      let deltaTxt, deltaKlass;
+      if(Math.abs(diff) < 8){ deltaTxt = "ingen tydlig skillnad"; deltaKlass = "neutral"; }
+      else if(diff > 0){ deltaTxt = "+" + diff + " bättre dagar"; deltaKlass = "battre"; }
+      else { deltaTxt = diff + " sämre dagar"; deltaKlass = "samre"; }
+      const el = document.createElement("div");
+      el.className = "faktor";
+      el.innerHTML =
+        "<div class='namn'><span>"+namn+"</span><span class='delta "+deltaKlass+"'>"+deltaTxt+"</span></div>" +
+        stapel("Med", snittMed, med.length) + stapel("Utan", snittUtan, utan.length);
+      lista.appendChild(el);
+    }
+    if(!lista.children.length) lista.innerHTML = "<p class='tomtext'>Fler dagar behövs för att jämföra faktorerna.</p>";
+  }
+  /* cykelinsikt */
+  const cykelEl = document.getElementById("cykelInsikt");
+  const medCykel = poster.map(p => ({...p, cd: cykeldag(p.k)})).filter(p => p.cd);
+  const roda = medCykel.filter(p => p.farg === "r");
+  const grona = medCykel.filter(p => p.farg === "g");
+  if(medCykel.length >= 10 && roda.length >= 2){
+    const snittRod = Math.round(roda.reduce((s,p) => s + p.cd, 0) / roda.length);
+    let txt = "Dina röda dagar ligger i snitt runt <b>cykeldag " + snittRod + "</b>";
+    if(grona.length >= 2){
+      const snittGron = Math.round(grona.reduce((s,p) => s + p.cd, 0) / grona.length);
+      txt += ", medan gröna dagar i snitt ligger runt <b>dag " + snittGron + "</b>";
+    }
+    txt += ". Ju fler dagar du loggar, desto tydligare blir bilden.";
+    cykelEl.classList.remove("tomtext");
+    cykelEl.innerHTML = txt;
+  } else if(medCykel.length > 0){
+    cykelEl.innerHTML = "Cykeldagar räknas nu. Efter ungefär en hel cykel med loggade dagar syns var dina röda dagar brukar hamna.";
+  }
+}
+function stapel(lbl, varde, antal){
+  return "<div class='stapelrad'><span class='lbl'>"+lbl+" ("+antal+")</span><div class='spar'><div class='fyll' style='width:"+varde+"%'></div></div><span class='varde'>"+varde+"</span></div>";
+}
+
+/* ================= export / import ================= */
+document.getElementById("exportKnapp").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "dagbok-" + idagStr() + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+document.getElementById("importFil").addEventListener("change", e => {
+  const fil = e.target.files[0]; if(!fil) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const ny = JSON.parse(r.result);
+      data = Object.assign({}, data, ny);
+      lagring.spara(data);
+      laddaDag(); ritaKalender(); ritaMonster();
+      alert("Import klar – " + Object.keys(ny).length + " dagar inlästa.");
+    }catch(err){ alert("Kunde inte läsa filen. Kontrollera att det är en exportfil från appen."); }
+  };
+  r.readAsText(fil);
+});
+
+/* ================= flikar ================= */
+function bytVy(namn){
+  document.querySelectorAll(".vy").forEach(v => v.classList.toggle("aktiv", v.id === "vy-" + namn));
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("aktiv", b.dataset.vy === namn));
+  if(namn === "kalender") ritaKalender();
+  if(namn === "monster") ritaMonster();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => bytVy(b.dataset.vy)));
+
+/* ================= start ================= */
+laddaDag();
+</script>
+</body>
+</html>
