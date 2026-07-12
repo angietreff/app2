@@ -124,9 +124,34 @@
   .spara:active{opacity:.85}
   .sparat-msg{text-align:center;font-size:.85rem;color:var(--gron-ljus);height:20px;font-weight:500}
 
-  /* ---------- PMS-banner ---------- */
+  /* ---------- PMS-banner / dagsprognos ---------- */
   .pms-banner{display:none;background:var(--dag-gul-bg);border:1px solid #E8D5A8;border-radius:var(--radius);padding:11px 14px;font-size:.85rem;line-height:1.5;margin-bottom:14px;color:var(--black)}
   .pms-banner b{color:var(--gron)}
+  .pms-banner.prog-g{background:var(--dag-gron-bg);border-color:#C4D8C9}
+  .pms-banner.prog-y{background:var(--dag-gul-bg);border-color:#E8D5A8}
+  .pms-banner.prog-r{background:var(--dag-rod-bg);border-color:#DFC0C6}
+
+  /* ---------- läkarrapport ---------- */
+  #rapport{display:none;position:fixed;inset:0;background:var(--ivory);z-index:50;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  #rapport.visas{display:block}
+  .rapport-inner{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 20px) 20px 60px}
+  .rapport-knappar{display:flex;gap:10px;margin-bottom:18px}
+  .rapport-knappar button{flex:1;border:1px solid #DDD4C2;background:#fff;border-radius:10px;padding:11px;font-family:'Karla',sans-serif;font-size:.85rem;cursor:pointer;color:var(--gron);font-weight:500}
+  .rapport-inner h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:1.6rem;margin-bottom:4px}
+  .rapport-inner h2{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:1.15rem;margin:18px 0 6px}
+  .rapport-inner p{font-size:.9rem;line-height:1.55;margin-bottom:8px}
+  .r-meta{color:#8A8272;font-size:.78rem !important}
+  .r-forkl{color:#8A8272;font-size:.8rem !important}
+  .r-rad{display:flex;align-items:center;gap:10px;padding:3px 0;border-bottom:1px solid #F0EADC}
+  .r-dag{width:56px;font-size:.78rem;color:#8A8272;flex-shrink:0}
+  .r-prick{width:11px;height:11px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+  .p-g{background:var(--dag-gron)} .p-y{background:var(--dag-gul)} .p-r{background:var(--dag-rod)}
+  @media print{
+    header,main,nav{display:none !important}
+    #rapport{display:block !important;position:static;overflow:visible}
+    .noprint{display:none !important}
+    body{padding:0;background:#fff}
+  }
 
   /* ---------- sömn-stegare ---------- */
   .stegare{display:flex;align-items:center;gap:14px;justify-content:center}
@@ -246,7 +271,9 @@
         <button data-humor="Harmonisk">Harmonisk</button>
         <button data-humor="Lugn">Lugn</button>
         <button data-humor="Energisk">Energisk</button>
+        <button data-humor="Neutral">Neutral</button>
         <button data-humor="Trött">Trött</button>
+        <button data-humor="Stressad">Stressad</button>
         <button data-humor="Skör">Skör</button>
         <button data-humor="Ledsen">Ledsen</button>
         <button data-humor="Orolig">Orolig</button>
@@ -375,6 +402,7 @@
     <div class="kort">
       <h2>Data</h2>
       <div class="dataknappar">
+        <button id="rapportKnapp">Läkarrapport</button>
         <button id="exportKnapp">Exportera</button>
         <label for="importFil">Importera</label>
         <input type="file" id="importFil" accept=".json">
@@ -384,6 +412,16 @@
   </section>
 
 </main>
+
+<div id="rapport">
+  <div class="rapport-inner">
+    <div class="rapport-knappar noprint">
+      <button id="rapportStang">Stäng</button>
+      <button id="rapportSkriv">Skriv ut / spara PDF</button>
+    </div>
+    <div id="rapportInnehall"></div>
+  </div>
+</div>
 
 <nav>
   <button class="aktiv" data-vy="idag">
@@ -450,24 +488,56 @@ function rodSnitt(){
 }
 function uppdateraPrognos(){
   const el = document.getElementById("pmsBanner");
+  const antalLoggade = Object.keys(data).filter(k => data[k].farg).length;
+  if(antalLoggade < 7){ el.style.display = "none"; return; }
   const st = cykelStat();
   const cd = cykeldag(valtDatum);
-  let html = "";
-  if(st.senaste && st.avg){
+  const rs = rodSnitt();
+  const skal = [];
+  let poang = 0;
+  if(rs && cd && Math.abs(cd - rs) <= 3){
+    poang += 2;
+    skal.push("dag " + cd + " i cykeln, nära ditt röda fönster (runt dag " + rs + ")");
+  } else if(st.senaste && st.avg){
     const nasta = franNyckel(st.senaste); nasta.setDate(nasta.getDate() + st.avg);
     const kvar = Math.round((nasta - franNyckel(valtDatum)) / 86400000);
-    const rs = rodSnitt();
-    const iFonster = (rs && cd && Math.abs(cd - rs) <= 3) || (kvar >= 0 && kvar <= 5);
-    if(iFonster){
-      html = "<b>PMS-fönster.</b> ";
-      if(kvar >= 0) html += "Mens beräknas om " + kvar + " dag" + (kvar === 1 ? "" : "ar") + " (" + nasta.getDate() + " " + MAN[nasta.getMonth()] + ").";
-      else html += "Mens väntas vilken dag som helst.";
-      if(rs) html += " Dina röda dagar brukar ligga runt cykeldag " + rs + ".";
-      html += " Känns det tungt nu är det troligen hormonerna – inte du.";
-    }
+    if(kvar >= 0 && kvar <= 5){ poang += 1; skal.push("mens beräknas om " + kvar + " dag" + (kvar === 1 ? "" : "ar")); }
   }
+  const g = franNyckel(valtDatum); g.setDate(g.getDate() - 1);
+  const igar = data[nyckel(g)];
+  if(igar){
+    const ih = humorAv(igar);
+    if(ih.includes("Uppe i varv") || ih.includes("Lättretlig") || ih.includes("Irriterad")){
+      poang += 1; skal.push("uppe i varv eller lättretlig igår");
+    }
+    if(igar.farg === "r"){ poang += 1; skal.push("tung dag igår"); }
+  }
+  const idagPost = data[valtDatum];
+  if(idagPost && ((typeof idagPost.somn === "number" && idagPost.somn < 6) || idagPost.somnKval === "r")){
+    poang += 1; skal.push("kort eller dålig natt");
+  }
+  let loggadeBak = 0, haftEgen = false;
+  for(let i = 1; i <= 4; i++){
+    const d = franNyckel(valtDatum); d.setDate(d.getDate() - i);
+    const p = data[nyckel(d)];
+    if(p && p.farg){ loggadeBak++; if(p.egentid) haftEgen = true; }
+  }
+  if(loggadeBak >= 2 && !haftEgen){ poang += 1; skal.push("flera dagar utan egen tid"); }
+
+  let klass, rubrik, tips = "";
+  if(poang >= 3){ klass = "prog-r"; rubrik = "Hög risk för tung dag"; tips = " Sänk kraven, stryk det som kan strykas och planera in en stund för dig själv. Kommer dippen är den förutsedd – inte ditt fel."; }
+  else if(poang === 2){ klass = "prog-y"; rubrik = "Förhöjd risk idag"; tips = " Var extra snäll mot dig själv och ta det lugnt där det går."; }
+  else if(poang === 1){ klass = "prog-y"; rubrik = "Lätt förhöjd risk"; }
+  else { klass = "prog-g"; rubrik = "Goda förutsättningar idag"; tips = " Inget i dina mönster talar för en dipp – bra läge för det du skjutit upp."; }
+  let html = "<b>" + rubrik + ".</b>";
+  if(skal.length){
+    const s = skal.join(" · ");
+    html += " " + s.charAt(0).toUpperCase() + s.slice(1) + ".";
+  }
+  html += tips;
+  el.className = "pms-banner " + klass;
   el.innerHTML = html;
-  el.style.display = html ? "block" : "none";
+  el.style.display = "block";
 }
 
 /* ================= idag-vyn ================= */
@@ -809,6 +879,65 @@ document.getElementById("importFil").addEventListener("change", e => {
   };
   r.readAsText(fil);
 });
+
+/* ================= läkarrapport ================= */
+function visaRapport(){
+  const poster = Object.keys(data).sort().map(k => ({k, ...data[k]})).filter(p => p.farg);
+  const medCd = poster.map(p => ({...p, cd: cykeldag(p.k)})).filter(p => p.cd);
+  const starter = Object.keys(data).filter(k => data[k].mens).sort();
+  const gaps = [];
+  for(let i = 1; i < starter.length; i++){
+    const gg = Math.round((franNyckel(starter[i]) - franNyckel(starter[i-1])) / 86400000);
+    if(gg >= 15 && gg <= 60) gaps.push(gg);
+  }
+  const nu = new Date();
+  let html = "<h1>Cykel- och måenderapport</h1>";
+  html += "<p class='r-meta'>Genererad " + nu.getDate() + " " + MAN[nu.getMonth()] + " " + nu.getFullYear() + " · Daglig egenloggning</p>";
+  if(poster.length){
+    const forsta = franNyckel(poster[0].k), sista = franNyckel(poster[poster.length-1].k);
+    html += "<p>Period: " + forsta.getDate() + " " + MAN[forsta.getMonth()] + " – " + sista.getDate() + " " + MAN[sista.getMonth()] + " · " + poster.length + " loggade dagar. Varje dag skattas som grön (bra), gul (mellandag) eller röd (tung dag).</p>";
+  } else {
+    html += "<p>Inga dagar loggade ännu.</p>";
+  }
+  if(gaps.length){
+    const snitt = Math.round(gaps.reduce((a,b) => a+b, 0) / gaps.length);
+    html += "<p>Registrerade cykellängder: " + gaps.join(", ") + " dagar (snitt " + snitt + ").</p>";
+  } else {
+    html += "<p>Färre än två registrerade mensstarter – cykellängd ej beräknad ännu.</p>";
+  }
+  if(medCd.length){
+    html += "<h2>Mående per cykeldag</h2><p class='r-forkl'>Varje prick är en loggad dag. Dag 1 = mensens första dag.</p>";
+    const perDag = {};
+    medCd.forEach(p => { (perDag[p.cd] = perDag[p.cd] || []).push(p.farg); });
+    const maxCd = Math.max(...Object.keys(perDag).map(Number));
+    for(let d = 1; d <= maxCd; d++){
+      const arr = perDag[d] || [];
+      html += "<div class='r-rad'><span class='r-dag'>Dag " + d + "</span><span>" +
+        arr.map(f => "<i class='r-prick p-" + f + "'></i>").join("") + "</span></div>";
+    }
+  }
+  const roda = poster.filter(p => p.farg === "r");
+  if(roda.length){
+    const c = {};
+    roda.forEach(p => humorAv(p).forEach(h => c[h] = (c[h] || 0) + 1));
+    const topp = Object.entries(c).sort((a,b) => b[1] - a[1]).slice(0,5);
+    if(topp.length){
+      html += "<h2>Vanligaste symtom på tunga dagar</h2><p>" +
+        topp.map(x => x[0].toLowerCase() + " (" + x[1] + " dagar)").join(", ") + ".</p>";
+    }
+    const rodaCd = medCd.filter(p => p.farg === "r");
+    if(rodaCd.length >= 2){
+      const snittRod = Math.round(rodaCd.reduce((s,p) => s + p.cd, 0) / rodaCd.length);
+      html += "<p>Tunga dagar infaller i snitt runt cykeldag " + snittRod + ".</p>";
+    }
+  }
+  html += "<p class='r-meta'>Underlag inför vårdkontakt, t.ex. vid frågeställning om PMS/PMDS. Skattningarna är subjektiva och loggade dagligen.</p>";
+  document.getElementById("rapportInnehall").innerHTML = html;
+  document.getElementById("rapport").classList.add("visas");
+}
+document.getElementById("rapportKnapp").addEventListener("click", visaRapport);
+document.getElementById("rapportStang").addEventListener("click", () => document.getElementById("rapport").classList.remove("visas"));
+document.getElementById("rapportSkriv").addEventListener("click", () => window.print());
 
 /* ================= flikar ================= */
 function bytVy(namn){
