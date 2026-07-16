@@ -395,6 +395,11 @@
       <div id="humorInsikt" class="insikt tomtext">När du loggat humör på flera dagar syns här vilka känslor som präglar gröna respektive röda dagar.</div>
     </div>
     <div class="kort">
+      <h2>Vad föregår en tung dag?</h2>
+      <p class="tomtext" style="margin-bottom:6px">Vad som hände <em>dagen innan</em> – inte samma dag – jämfört med dagar innan gröna dagar.</p>
+      <div id="foregarInsikt"></div>
+    </div>
+    <div class="kort">
       <h2>Vad hänger ihop med dina dagar?</h2>
       <p class="tomtext" style="margin-bottom:6px">Snittfärg på dagar <em>med</em> respektive <em>utan</em> varje faktor (0 = röd, 100 = grön).</p>
       <div id="faktorLista"></div>
@@ -708,6 +713,7 @@ function ritaMonster(){
   const poster = Object.keys(data).map(k => ({k, ...data[k]})).filter(p => p.farg);
   ritaVecka();
   ritaHumor(poster);
+  ritaForegar();
   const lista = document.getElementById("faktorLista");
   lista.innerHTML = "";
   if(poster.length < 5){
@@ -818,6 +824,53 @@ function ritaHumor(poster){
   if(tr.length) delar.push("På <b>röda dagar</b>: " + tr.join(", ") + ".");
   el.classList.remove("tomtext");
   el.innerHTML = delar.join(" ");
+}
+
+/* ================= vad föregår en tung dag ================= */
+function ritaForegar(){
+  const el = document.getElementById("foregarInsikt");
+  const roda = [], grona = [];
+  for(const k in data){
+    const post = data[k];
+    if(!post.farg) continue;
+    const d = franNyckel(k); d.setDate(d.getDate() - 1);
+    const fore = data[nyckel(d)];
+    if(!fore || !fore.farg) continue; // vi vill bara ha dagar innan som också är loggade
+    if(post.farg === "r") roda.push(fore);
+    else if(post.farg === "g") grona.push(fore);
+  }
+  if(roda.length < 3 || grona.length < 3){
+    el.innerHTML = "<p class='tomtext'>Behöver fler par av loggade dagar i följd (minst tre röda och tre gröna dagar med en loggad dag innan) för att jämföra.</p>";
+    return;
+  }
+  const rader = [];
+  const medSomnR = roda.filter(p => typeof p.somn === "number");
+  const medSomnG = grona.filter(p => typeof p.somn === "number");
+  if(medSomnR.length >= 2 && medSomnG.length >= 2){
+    const sr = (medSomnR.reduce((s,p) => s + p.somn, 0) / medSomnR.length).toFixed(1);
+    const sg = (medSomnG.reduce((s,p) => s + p.somn, 0) / medSomnG.length).toFixed(1);
+    rader.push("Sömn dagen innan: <b>" + sr + " tim</b> före röda dagar, <b>" + sg + " tim</b> före gröna.");
+  }
+  for(const [falt, namn] of FAKTORER){
+    const andelR = Math.round(100 * roda.filter(p => p[falt]).length / roda.length);
+    const andelG = Math.round(100 * grona.filter(p => p[falt]).length / grona.length);
+    if(Math.abs(andelR - andelG) < 15) continue;
+    rader.push(namn + " dagen innan: <b>" + andelR + "%</b> av röda dagar, <b>" + andelG + "%</b> av gröna.");
+  }
+  function humorAndel(arr, ord){
+    return Math.round(100 * arr.filter(p => humorAv(p).includes(ord)).length / arr.length);
+  }
+  const humorOrd = ["Uppe i varv","Lättretlig","Stressad","Trött","Skör","Överväldigad"];
+  for(const ord of humorOrd){
+    const ar = humorAndel(roda, ord), ag = humorAndel(grona, ord);
+    if(Math.abs(ar - ag) < 15) continue;
+    rader.push("Kände \"" + ord.toLowerCase() + "\" dagen innan: <b>" + ar + "%</b> av röda dagar, <b>" + ag + "%</b> av gröna.");
+  }
+  if(!rader.length){
+    el.innerHTML = "<p class='tomtext'>Inga tydliga skillnader ännu i vad som föregår röda respektive gröna dagar. Fler loggade dagar ger skarpare bild.</p>";
+  } else {
+    el.innerHTML = "<p class='insikt'>" + rader.join("</p><p class='insikt'>") + "</p>";
+  }
 }
 
 /* ================= veckosammanfattning ================= */
