@@ -172,6 +172,15 @@
   .kval-val .kv-r{background:var(--dag-rod)}
   .kval-val button.vald{border-color:var(--black);transform:scale(1.18)}
 
+  /* ---------- bön ---------- */
+  .bon-kort{background:linear-gradient(170deg,#FFFDF9,#F6F1E6);border:1px solid #E8E1D3;border-radius:var(--radius);padding:24px 20px 22px}
+  .bon-etikett{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--massing);text-align:center;margin-bottom:16px}
+  .bon-text{font-family:'Cormorant Garamond',serif;font-size:1.18rem;line-height:1.62;color:var(--black)}
+  .bon-text p{margin-bottom:13px}
+  .bon-text p:last-child{margin-bottom:0}
+  .bon-vers{margin-top:18px;padding-top:14px;border-top:1px solid #E8E1D3;font-size:.83rem;color:#8A8272;text-align:center;font-style:italic}
+  .annan-bon{width:100%;margin-top:12px;background:none;border:1px solid #DDD4C2;border-radius:var(--radius);padding:12px;font-family:'Karla',sans-serif;font-size:.85rem;color:var(--gron);cursor:pointer}
+
   /* ---------- kalender ---------- */
   .kal-huvud{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
   .kal-huvud button{background:none;border:1px solid #E8E1D3;border-radius:10px;width:36px;height:36px;font-size:1rem;color:var(--gron);cursor:pointer}
@@ -321,6 +330,24 @@
     </div>
 
     <div class="kort">
+      <div class="etikett">Vi två</div>
+      <div class="rad"><span class="txt">Sa något uppskattande till honom</span><button class="vipp" data-falt="uppskattning"></button></div>
+      <div class="rad"><span class="txt">Gjorde något för honom</span><button class="vipp" data-falt="gjordeFor"></button></div>
+      <div style="padding-top:10px">
+        <div class="etikett" id="fragaPatrik">Vad gjorde han som var fint idag?</div>
+        <input type="text" class="steg-input" id="relPatrik" style="text-align:left" placeholder="Något litet räcker…">
+      </div>
+      <div style="padding-top:12px">
+        <div class="etikett">Vad gjorde jag som byggde vår relation?</div>
+        <input type="text" class="steg-input" id="relJag" style="text-align:left" placeholder="…">
+      </div>
+      <div style="padding-top:12px">
+        <div class="etikett">En sak jag vill ta med mig till imorgon</div>
+        <input type="text" class="steg-input" id="relImorgon" style="text-align:left" placeholder="…">
+      </div>
+    </div>
+
+    <div class="kort">
       <div class="etikett">Sömn i natt</div>
       <div class="stegare">
         <button id="somnMinus" aria-label="Mindre sömn">−</button>
@@ -391,6 +418,24 @@
     </div>
   </section>
 
+  <!-- ============ BÖN ============ -->
+  <section class="vy" id="vy-bon">
+    <div class="bon-kort">
+      <div class="bon-etikett" id="bonDatum">Dagens bön</div>
+      <div class="bon-text" id="bonText"></div>
+      <div class="bon-vers" id="bonVers"></div>
+    </div>
+    <button class="annan-bon" id="annanBon">Visa en annan bön</button>
+    <div class="kort" style="margin-top:16px">
+      <div class="etikett">Namn i bönerna</div>
+      <p class="tomtext" style="font-size:.82rem;margin-bottom:10px">Sparas bara på din telefon – aldrig i koden.</p>
+      <input type="text" class="steg-input" id="namnP" style="text-align:left;margin-bottom:8px" placeholder="Din mans namn">
+      <input type="text" class="steg-input" id="namnB" style="text-align:left" placeholder="Barnens namn, t.ex. A och B">
+      <button class="spara" id="sparaNamnKnapp" style="margin-top:12px">Spara namn</button>
+      <div class="sparat-msg" id="namnMsg"></div>
+    </div>
+  </section>
+
   <!-- ============ MÖNSTER ============ -->
   <section class="vy" id="vy-monster">
     <div class="kort">
@@ -457,6 +502,10 @@
   <button data-vy="kalender">
     <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
     Kalender
+  </button>
+  <button data-vy="bon">
+    <svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-7-9.5A3.5 3.5 0 0 1 12 9a3.5 3.5 0 0 1 7 2.5C19 16.6 12 21 12 21z"/></svg>
+    Bön
   </button>
   <button data-vy="monster">
     <svg viewBox="0 0 24 24"><path d="M4 19L9 12l4 4 7-9"/><path d="M4 21h16"/></svg>
@@ -565,6 +614,7 @@ function uppdateraPrognos(){
     const gjortIdag = {
       egentid: aktuell.egentid, traning: aktuell.traning, mindfulness: aktuell.mindfulness,
       vanner: aktuell.vanner, narhet: aktuell.narhet, utvilad: aktuell.utvilad,
+      uppskattning: aktuell.uppskattning, gjordeFor: aktuell.gjordeFor,
       tacksam: harTacksamhet(aktuell),
       somn: typeof aktuell.somn === "number" && aktuell.somn >= 7,
       steg: typeof aktuell.steg === "number" && aktuell.steg >= 8000,
@@ -581,7 +631,7 @@ function uppdateraPrognos(){
 }
 
 /* ================= idag-vyn ================= */
-function tomPost(){ return {farg:null,humor:[],somn:null,somnKval:null,trottareVid:false,skarmtid:null,steg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,vanner:false,brak:false,narhet:false,egentid:false,mindfulness:false,traning:false,traningTyp:[],tacksam:["","",""],anteckning:""}; }
+function tomPost(){ return {farg:null,humor:[],somn:null,somnKval:null,trottareVid:false,skarmtid:null,steg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,vanner:false,brak:false,narhet:false,uppskattning:false,gjordeFor:false,relPatrik:"",relJag:"",relImorgon:"",egentid:false,mindfulness:false,traning:false,traningTyp:[],tacksam:["","",""],anteckning:""}; }
 function humorAv(p){
   const h = Array.isArray(p.humor) ? p.humor.slice() : [];
   if(p.uppevarv && !h.includes("Uppe i varv")) h.push("Uppe i varv");
@@ -603,6 +653,11 @@ function laddaDag(){
   document.getElementById("traningExtra").classList.toggle("visas", aktuell.traning);
   document.querySelectorAll("#traningChips button").forEach(c => c.classList.toggle("vald", aktuell.traningTyp.includes(c.dataset.typ)));
   document.getElementById("anteckning").value = aktuell.anteckning || "";
+  document.getElementById("relPatrik").value = aktuell.relPatrik || "";
+  document.getElementById("relJag").value = aktuell.relJag || "";
+  document.getElementById("relImorgon").value = aktuell.relImorgon || "";
+  const nP = lasNamn().p;
+  document.getElementById("fragaPatrik").textContent = nP ? "Vad gjorde " + nP + " som var fint idag?" : "Vad gjorde han som var fint idag?";
   if(typeof aktuell.tacksam === "string") aktuell.tacksam = [aktuell.tacksam, "", ""];
   if(!Array.isArray(aktuell.tacksam)) aktuell.tacksam = ["","",""];
   document.getElementById("tacksam1").value = aktuell.tacksam[0] || "";
@@ -693,6 +748,9 @@ function flyttaDag(steg){
 }
 document.getElementById("sparaKnapp").addEventListener("click", () => {
   aktuell.anteckning = document.getElementById("anteckning").value.trim();
+  aktuell.relPatrik = document.getElementById("relPatrik").value.trim();
+  aktuell.relJag = document.getElementById("relJag").value.trim();
+  aktuell.relImorgon = document.getElementById("relImorgon").value.trim();
   aktuell.tacksam = [
     document.getElementById("tacksam1").value.trim(),
     document.getElementById("tacksam2").value.trim(),
@@ -747,7 +805,9 @@ const FAKTORER = [
   ["egentid","Egen tid för mig själv"],
   ["mindfulness","Mindfulness"],
   ["brak","Bråk med Patrik"],
-  ["narhet","Närhet med Patrik"]
+  ["narhet","Närhet med Patrik"],
+  ["uppskattning","Sa något uppskattande"],
+  ["gjordeFor","Gjorde något för honom"]
 ];
 function ritaMonster(){
   const poster = Object.keys(data).map(k => ({k, ...data[k]})).filter(p => p.farg);
@@ -978,6 +1038,8 @@ const SKYDD = [
   ["mindfulness","Mindfulness","Ta tio minuter mindfulness"],
   ["vanner","Tid med vänner","Hör av dig till någon du tycker om"],
   ["narhet","Närhet med Patrik","Sök en stund tillsammans"],
+  ["uppskattning","Säga något uppskattande","Säg en sak du uppskattar hos honom – högt"],
+  ["gjordeFor","Göra något för honom","Gör något litet för honom idag"],
   ["utvilad","Att vakna utvilad","Prioritera att komma i säng tidigt ikväll"]
 ];
 function harTacksamhet(p){
@@ -1185,11 +1247,121 @@ document.getElementById("rapportKnapp").addEventListener("click", visaRapport);
 document.getElementById("rapportStang").addEventListener("click", () => document.getElementById("rapport").classList.remove("visas"));
 document.getElementById("rapportSkriv").addEventListener("click", () => window.print());
 
+/* ================= namn (endast lokalt) ================= */
+const NAMN_NYCKEL = "dagbok-namn-v1";
+function lasNamn(){ try{ return JSON.parse(localStorage.getItem(NAMN_NYCKEL)) || {p:"",b:""}; }catch(e){ return {p:"",b:""}; } }
+function sparaNamn(n){ try{ localStorage.setItem(NAMN_NYCKEL, JSON.stringify(n)); }catch(e){} }
+function fyllNamn(txt){
+  const n = lasNamn();
+  return txt.replace(/\{P\}/g, n.p || "min man").replace(/\{B\}/g, n.b || "barnen");
+}
+
+/* ================= bönebibliotek ================= */
+const BONER = {
+vanlig: [
+{t:"Herre Jesus, du är här. I det vanliga, i rummen där ingen ser mig arbeta – där är du också.\n\nTack för {P}. Tack för att du känner honom bättre än jag gör och älskar honom ännu mer. Välsigna honom idag: ge honom frid i det han bär, kraft när han är trött och mod när något känns svårt.\n\nHjälp mig att se det goda i honom. Låt mig vara en hustru som uppmuntrar och lyssnar. När jag börjar räkna vem som gjort mest, påminn mig om att vi står i samma lag – medspelare, inte motståndare, också de dagar vi är för trötta för att visa det.\n\nTack för {B}. Låt dem känna sig trygga hos mig – inte för att jag är felfri, utan för att jag är här.\n\nJag lämnar den här dagen till dig. Jag bär den inte ensam. Du tar emot den, och jag får vila i det. Amen.", v:"\"Jag är med er alla dagar.\" — Matt 28:20"},
+{t:"Herre, tack för en ny dag och för att den inte vilar på mina axlar ensam.\n\nVälsigna {P} idag. Gå med honom i det han möter, och låt honom veta att han är älskad – av dig, och av mig även de dagar jag glömmer att säga det.\n\nGör mig uppmärksam. Låt mig se det han gör som annars försvinner i vardagen, och säga det högt istället för att tänka det. Mjuka upp mig där jag blivit skarp av trötthet.\n\nVar med {B}. Låt vårt hem vara en plats där de får vara små och jag får vara ofärdig.\n\nJag lägger dagen i dina händer nu. Du tar emot den. Amen.", v:"\"Kasta alla era bekymmer på honom, han har omsorg om er.\" — 1 Pet 5:7"},
+{t:"Gud, innan dagen börjar vill jag stanna hos dig en stund.\n\nDu vet vad som ligger framför mig. Du vet också vad jag orkar, bättre än jag själv gör. Hjälp mig att inte försöka bära morgondagen samtidigt som idag.\n\nVälsigna {P}. Ge honom ro i det som tynger honom och glädje i något litet. Hjälp oss att vända oss mot varandra istället för bort, särskilt när vi är trötta.\n\nGe mig tålamod med {B} och mildhet med mig själv när det tar slut.\n\nDet jag inte hinner idag lämnar jag hos dig, utan skuld. Amen.", v:"\"Var inte oroliga för morgondagen.\" — Matt 6:34"},
+{t:"Herre Jesus, tack för att jag får komma till dig mitt i det vanliga – inte bara när allt rasar.\n\nTack för {P}. Tack för att vi bygger något tillsammans, också de dagar det mest känns som logistik. Välsigna honom med kraft och med tålamod, och hjälp honom veta att han inte är ensam.\n\nLär mig att räcka honom något innan jag räknar vad jag fått. Låt mitt första svar vara vänlighet.\n\nTack för {B} och för att de är mina. Låt mig vara närvarande hos dem idag, inte bara upptagen.\n\nJag vilar i att du håller oss alla. Amen.", v:"\"Bär varandras bördor.\" — Gal 6:2"},
+{t:"Gud, du ser den här dagen redan innan jag levt den.\n\nJag ber för {P}: ge honom frid i kroppen och klarhet i det som är svårt. Låt honom känna sig sedd idag.\n\nOch hjälp mig, för jag vill vara en människa som är god att leva med. När jag blir irriterad, ge mig en sekund till innan jag svarar. När jag känner mig oälskad, påminn mig om att fråga istället för att dra mig undan.\n\nVar med {B} i allt de möter idag.\n\nJag ger dig det jag inte kan styra. Du tar emot, och jag får släppa. Amen.", v:"\"Kärleken är tålmodig och god.\" — 1 Kor 13:4"},
+{t:"Herre, tack för det liv jag faktiskt har – inte det jag jämför mig med.\n\nÖppna mina ögon för det som redan är gott. Tack för {P}, för hans sätt att vara, för det han bär utan att göra väsen av det. Välsigna honom rikligt idag.\n\nHjälp mig lägga ner måttbandet: vem som gör mest, vem som är tröttast, vem som har det värst. Det gör oss till motståndare, och det vill jag inte.\n\nVälsigna {B} och ge dem en trygg dag.\n\nJag lämnar jämförelsen hos dig. Jag behöver inte hålla räkning – du håller oss. Amen.", v:"\"Kärleken söker inte sitt.\" — 1 Kor 13:5"},
+{t:"Gud, hjälp mig att börja dagen med tacksamhet istället för med listan.\n\nTack för {P}. Välsigna hans arbete, hans kropp, hans tankar. Ge honom mod där han tvekar och vila där han är sliten.\n\nGör mig till någon som är lätt att komma hem till. Hjälp mig att fråga hur han mår och orka lyssna på svaret.\n\nTack för {B}, för deras röster i huset.\n\nAllt jag inte hinner tänka klart lägger jag hos dig nu. Du sorterar det bättre än jag. Amen.", v:"\"Tacka Herren, ty han är god.\" — Ps 107:1"},
+{t:"Herre Jesus, du är närmare än jag känner.\n\nVälsigna {P} idag – i det stora och i det små. Låt honom veta att han är värdefull, oavsett vad han hinner.\n\nHjälp oss att vara varsamma med varandra. Låt oss inte spara det milda till högtiderna utan ge det i vardagen, där det behövs mest.\n\nTack för {B}. Hjälp mig se dem som personer, inte som uppgifter.\n\nJag lägger min oro hos dig och stannar en stund i din närhet innan dagen tar mig. Amen.", v:"\"Var stilla och besinna att jag är Gud.\" — Ps 46:11"},
+{t:"Gud, tack för att du inte kräver att jag har allting ordnat innan jag kommer.\n\nJag ber för {P}. Skydda honom, styrk honom, ge honom glädje idag. Hjälp honom bära det han inte pratar om.\n\nGör mig frimodig nog att be om hjälp när jag behöver det, istället för att först bli bitter och sedan explodera. Låt mig tro att han vill hjälpa.\n\nVälsigna {B} och låt dem växa i trygghet.\n\nJag vilar i att jag inte behöver klara allt själv. Amen.", v:"\"Han ger den trötte kraft.\" — Jes 40:29"},
+{t:"Herre, tack för hemmet vi delar och för att du bor i det med oss.\n\nVälsigna {P}. Ge honom en god dag, ett lugnt hjärta och känslan av att vara älskad.\n\nHjälp mig välja tonfall idag. Så mycket avgörs där. Låt mitt sätt att prata med honom vara sådant jag skulle vilja att {B} lär sig av.\n\nDet som skaver i mig lämnar jag till dig istället för att kasta det på honom.\n\nTack för att du tar emot det. Amen.", v:"\"Var goda mot varandra och barmhärtiga.\" — Ef 4:32"},
+{t:"Gud, du känner min dag innan den börjar och min trötthet innan jag erkänner den.\n\nVälsigna {P}. Ge honom kraft, klarhet och frid. Hjälp honom känna sig trygg i vårt hem.\n\nGör mig till en medspelare idag. När vi drar åt olika håll, låt mig vara den som först söker vägen tillbaka.\n\nVar med {B} i allt de gör.\n\nJag lämnar det ogjorda, det osagda och det oroliga hos dig. Du tar emot det utan att döma mig. Amen.", v:"\"Herren strider för er, ni skall vara stilla.\" — 2 Mos 14:14"},
+{t:"Herre Jesus, tack för nåden som är ny varje morgon, också efter en dag jag helst hade gjort om.\n\nVälsigna {P} idag. Ge honom vila i själen och styrka i kroppen.\n\nHjälp mig att inte bära gårdagen in i idag. Låt oss få börja om utan att räkna gamla skulder.\n\nTack för {B} och för att de får ett nytt försök varje dag – precis som jag.\n\nAllt gammalt lägger jag ner här hos dig. Amen.", v:"\"Den som är i Kristus är en ny skapelse.\" — 2 Kor 5:17"},
+{t:"Gud, tack för att du är stark där jag är svag.\n\nJag ber för {P}: möt honom idag, i det han oroar sig för och det han längtar efter. Ge honom frid.\n\nHjälp mig se honom med samma mjuka blick som jag vill bli sedd med. Påminn mig om att han också är trött, att han också gör sitt bästa, och att vi kämpar mot samma sak – inte mot varandra.\n\nVälsigna {B} med en trygg dag.\n\nJag vilar i din nåd, inte i min prestation. Amen.", v:"\"Min nåd är nog för dig.\" — 2 Kor 12:9"},
+{t:"Herre, gör mig uppmärksam idag.\n\nLåt mig se de tre små saker {P} gör som jag brukar gå förbi, och säg mig att säga det högt. Välsigna honom rikligt, mer än jag ens tänker på att be om.\n\nMjuka upp mitt hjärta där det hårdnat av trötthet, och lär mig att ta emot omsorg utan att först ha förtjänat den.\n\nTack för {B} och för ljudet av dem i huset.\n\nJag lägger min prestation åt sidan och vilar i att jag redan är älskad. Amen.", v:"\"Han vet vad vi är gjorda av.\" — Ps 103:14"},
+{t:"Gud, tack för att du håller ihop det jag släpper.\n\nVälsigna {P}. Ge honom mod idag, och vila ikväll. Låt honom veta att han gör skillnad.\n\nHjälp mig att vara vänlig när jag är trött. Det är då det räknas, och det är då jag misslyckas mest.\n\nVar med {B} och låt dem känna sig älskade av oss båda.\n\nJag ger dig dagen som den blir – inte som jag planerat den. Amen.", v:"\"Gud är vår tillflykt och styrka.\" — Ps 46:2"},
+{t:"Herre Jesus, tack för att du går med oss båda, också när vi går i otakt.\n\nVälsigna {P} idag. Ge honom frid i tankarna och styrka i det tunga.\n\nGör vårt hem till en plats där vi vilar, inte tävlar. Hjälp mig lägga ner behovet av att ha rätt.\n\nTack för {B}, för att de lär mig något varje dag om kärlek som inte kräver något tillbaka.\n\nJag lämnar oss i dina händer, hela familjen. Du håller oss. Amen.", v:"\"Bättre är två än en.\" — Pred 4:9"}
+],
+tung: [
+{t:"Herre Jesus, jag har lite kvar idag. Jag kommer till dig som jag är, trött och tunn i tålamodet, och jag behöver inte förklara mig för dig. Du ser nätterna. Du ser allt jag håller ihop utan att någon tackar mig.\n\nHär lägger jag det. Allt jag burit själv, allt jag trott att jag måste klara ensam – jag lämnar det hos dig, och du tar emot det utan att räkna. Låt mig få vara liten en stund, utan att någon behöver något av mig.\n\nVälsigna {P} idag – ge honom kraft också, för han är trött han med. Låt oss vara varsamma med varandra när vi båda är slitna, och hjälp mig att våga ta emot när han räcker mig något.\n\nPåminn mig att jag inte är mindre värd när jag är svag, och att jag inte står ensam i det här. Låt mig vila hos dig en stund. Ge mig sedan kraft för det som ligger närmast. Bara det. Amen.", v:"\"Kom till mig, alla ni som är tyngda av bördor, så skall jag ge er vila.\" — Matt 11:28"},
+{t:"Gud, idag känns allt tyngre än det borde. Jag vet inte alltid varför, och jag är trött på att förklara det.\n\nDu behöver inga förklaringar. Du ser hela bilden – kroppen, sömnen, allt som drar i mig.\n\nBär mig genom den här dagen. Jag ber inte om att bli stark, bara om att bli buren. Låt mig få luta mig mot dig utan att skämmas.\n\nVälsigna {P} och ge honom tålamod med mig idag. Hjälp mig säga hur jag mår istället för att bli hård.\n\nVar nära {B} när jag inte räcker till för dem.\n\nJag lägger allt här. Du tar emot det. Amen.", v:"\"Herren är nära dem som har ett förkrossat hjärta.\" — Ps 34:19"},
+{t:"Herre, jag orkar inte prestera inför dig idag heller.\n\nTack för att jag inte behöver. Tack för att jag får komma tom och ändå vara välkommen.\n\nTa det jag inte klarar. Bär det jag inte kan lägga ifrån mig. Låt mig andas en stund utan krav.\n\nVälsigna {P}. Ge honom kraft att stå kvar när jag är tung att leva med, och hjälp mig att inte tolka hans trötthet som avvisande.\n\nSkydda {B} från att bära det som är mitt att bära.\n\nJag vilar hos dig nu. Bara det. Amen.", v:"\"Vila i Gud, min själ.\" — Ps 62:6"},
+{t:"Gud, jag är så trött att jag knappt hittar orden.\n\nDu hör dem ändå. Du hörde dem innan jag försökte.\n\nHåll mig idag. Låt mig få vara den som blir buren för en gångs skull. Jag har hållit i så länge.\n\nVälsigna {P} och ge honom kraft. Låt oss inte ta ut det värsta på varandra ikväll.\n\nVar mild mot {B} genom mig, också när mitt tålamod tar slut.\n\nJag lämnar dagen ofärdig i dina händer och låter det räcka. Amen.", v:"\"Han bär oss dag efter dag.\" — Ps 68:20"},
+{t:"Herre Jesus, allt känns för mycket idag.\n\nJag lägger ner det ena efter det andra hos dig: kraven, listan, känslan av att svika alla. Du tar emot varje sak utan att sucka.\n\nGe mig ro i kroppen. Stilla det som rusar inuti mig.\n\nVälsigna {P} idag och hjälp mig att våga säga att jag behöver honom, istället för att vänta på att han ska förstå.\n\nHåll {B} trygga, också en dag som denna.\n\nJag vilar i att du inte lämnar mig. Amen.", v:"\"Han stillar stormen.\" — Ps 107:29"},
+{t:"Gud, det är en av de där dagarna. Jag känner inte igen mig själv.\n\nPåminn mig om att känslan inte är sanningen om mig. Att det här går över. Att jag varit här förr och kommit ut på andra sidan.\n\nBär mig tills det vänder. Låt mig få vila hos dig utan att prestera mig frisk.\n\nVälsigna {P}, och ge honom tålamod. Hjälp mig att inte be om ursäkt för att jag finns.\n\nVar nära {B} idag.\n\nJag lämnar allt hos dig. Du tar emot det. Amen.", v:"\"Var inte rädd, jag är med dig.\" — Jes 41:10"},
+{t:"Herre, jag har inget att ge idag – varken till {P}, till {B} eller till mig själv.\n\nTack för att du inte kräver något av mig just nu. Tack för att jag får ta emot utan att först ha gett.\n\nFyll på det som är tomt. Vila mig på insidan.\n\nVälsigna {P} med kraft för oss båda idag, och låt mig ta emot det utan skuld.\n\nHåll {B} nära dig när jag inte orkar hålla dem nära mig.\n\nJag vilar i din famn en stund. Amen.", v:"\"Allt förmår jag genom honom som ger mig kraft.\" — Fil 4:13"},
+{t:"Gud, jag ber om det enklaste jag kan tänka mig: hjälp mig igenom den här dagen.\n\nInte hela veckan. Inte hela livet. Bara idag.\n\nDela upp den åt mig i bitar jag klarar. Var med i varje bit.\n\nVälsigna {P} och ge honom kraft. Låt oss bära varandra istället för att gnaga på varandra.\n\nVar god mot {B} genom mig, även när jag är kort i tonen.\n\nAllt annat lämnar jag hos dig. Amen.", v:"\"I stillhet och förtröstan ligger er styrka.\" — Jes 30:15"}
+],
+forsoning: [
+{t:"Herre Jesus, det skavde mellan oss idag, och jag bär både sorg och stolthet.\n\nLägg ner räknandet i mig – vem som sa vad, vem som har det värst. Jag vill inte vinna över {P}. Vi står i samma lag, mot det som sliter på oss, inte mot varandra. Mjuka upp mitt hjärta där stoltheten sitter hårdast och ge mig mod att ta första steget även när jag känner mig i min rätt.\n\nVälsigna honom nu. Låt honom känna sig älskad idag, också av mig. Låt vårt hem vara tryggt för {B} även när vi vuxna misslyckas – låt dem få se att kärlek inte är frånvaro av bråk, utan viljan att komma tillbaka till varandra.\n\nDet som skaver mellan oss lämnar jag hos dig. Du tar emot det, och jag behöver inte bära det ensam i natt. Tack för att din kärlek till mig inte hänger på att jag är felfri. Låt min likna den lite mer. Amen.", v:"\"Var goda mot varandra och barmhärtiga, förlåt varandra.\" — Ef 4:32"},
+{t:"Gud, jag är sårad och jag vill helst dra mig undan.\n\nDu vet precis vad som sades och vad som egentligen menades. Du vet också vad jag bidrog med.\n\nHjälp mig se min del utan att sjunka ihop av skuld. Ge mig mod att säga förlåt för det som är mitt, och att låta resten vara.\n\nVälsigna {P} nu, särskilt nu. Mjuka upp också hans hjärta. Led oss tillbaka till varandra.\n\nLåt {B} få se två vuxna som vänder om.\n\nJag lämnar bråket här hos dig istället för att bära det in i natten. Amen.", v:"\"Låt inte solen gå ner över er vrede.\" — Ef 4:26"},
+{t:"Herre, avståndet mellan oss känns stort ikväll.\n\nJag vill inte ha rätt. Jag vill ha honom tillbaka.\n\nTa bort det hårda i mig. Hjälp mig gå ett steg, även ett litet – en hand, en blick, ett ord.\n\nVälsigna {P} och låt honom veta att jag älskar honom, även när jag är otymplig i hur jag visar det.\n\nSkydda {B} från det som är mellan oss vuxna, och hjälp oss reparera i deras åsyn.\n\nJag lägger allt osagt hos dig i natt. Du tar emot det. Amen.", v:"\"Ett nytt bud ger jag er: att ni skall älska varandra.\" — Joh 13:34"},
+{t:"Gud, jag känner mig missförstådd, och det gör mig hård.\n\nHjälp mig sluta bygga argument i huvudet. Låt mig istället fråga hur han hade det.\n\nVälsigna {P}. Ge honom nåd med mig, och mig nåd med honom.\n\nHela oss där vi sårat varandra, och låt vårt hem vara en trygg plats för {B} i morgon igen.\n\nJag lämnar min rättvisa hos dig. Du dömer bättre än jag, och du dömer med kärlek. Amen.", v:"\"Var barmhärtiga, så som er Fader är barmhärtig.\" — Luk 6:36"},
+{t:"Herre Jesus, vi är trötta och det gör oss elaka mot varandra.\n\nTa det som är gammalt och skavigt mellan oss och gör något nytt av det. Låt oss inte fastna i samma spår igen.\n\nVälsigna {P}. Ge honom vila, och ge oss båda en ny start i morgon.\n\nLåt {B} växa upp i ett hem där man säger förlåt på riktigt.\n\nAllt vi trasslat till lägger jag i dina händer nu, och jag får sova utan att ha löst det. Amen.", v:"\"Se, jag gör något nytt.\" — Jes 43:19"}
+],
+tacksamhet: [
+{t:"Herre, tack. Idag var en god dag, och jag vill inte gå förbi den utan att säga det.\n\nTack för {P} och för det som var lätt mellan oss idag. Tack för skratt, för hjälp jag inte behövde be om, för att vi är på samma sida.\n\nTack för {B} och för allt de gav mig utan att veta om det.\n\nLär mig att minnas de här dagarna när de tunga kommer, och att tro att de kommer tillbaka.\n\nJag lämnar också det goda i dina händer – det är ditt från början. Amen.", v:"\"Gläd er alltid i Herren.\" — Fil 4:4"},
+{t:"Gud, tack för det jag har mitt framför mig och som jag så lätt slutar se.\n\nEtt hem. En man som stannar. Barn som söker mig. En kropp som orkar mer än jag tror.\n\nTack för {P}. Välsigna honom idag, dubbelt så mycket som jag hinner be om.\n\nTack för {B}, precis som de är.\n\nLåt tacksamheten få sitta kvar i mig också i morgon. Jag vilar i det goda du redan gett. Amen.", v:"\"Din nåd är bättre än livet.\" — Ps 63:4"},
+{t:"Herre Jesus, tack för att du ger utan att räkna.\n\nTack för de stunder idag när jag kände mig som mig själv igen. Tack för {P} och för det vi delar som ingen annan ser.\n\nHjälp mig ge vidare av det jag fått – ett tack, ett leende, en hand på hans axel.\n\nTack för {B} och deras sätt att göra världen mindre och varmare.\n\nJag vilar i din godhet ikväll. Amen.", v:"\"Låt oss älska, inte med tomma ord utan i handling.\" — 1 Joh 3:18"},
+{t:"Gud, tack för att du bär mig också de dagar jag inte märker det.\n\nTack för allt som gick bra idag och som jag tog för givet: mat, sömn, händer som håller.\n\nVälsigna {P} och låt honom få del av samma godhet.\n\nTack för {B} och för att jag får vara deras.\n\nJag lägger tacksamheten hos dig som ett tack, inte som en prestation. Amen.", v:"\"Tacka Herren, ty han är god.\" — Ps 107:1"},
+{t:"Herre, idag kändes det som att vi drog åt samma håll, {P} och jag. Tack för det.\n\nHjälp oss minnas den här känslan när det blir tungt igen – att den finns kvar under allt annat.\n\nVälsigna honom rikligt.\n\nTack för {B} och för hemmet vi bygger åt dem.\n\nJag vilar i att du håller ihop oss. Amen.", v:"\"Frid lämnar jag kvar åt er.\" — Joh 14:27"}
+],
+barnen: [
+{t:"Gud, tack för {B}.\n\nDe är dina innan de är mina. Det tröstar mig när jag känner att jag inte räcker till.\n\nGe mig tålamod idag. Låt mig se dem, inte bara sköta dem. Hjälp mig att böja mig ner och lyssna även när jag är trött.\n\nOch när jag tappar tålamodet – hjälp mig be dem om förlåtelse, så att de lär sig att vuxna också får göra det.\n\nVälsigna {P} i hans föräldraskap, och låt oss vara ett lag också i det.\n\nJag lämnar dem i dina händer i natt. Du vakar när jag sover. Amen.", v:"\"Låt barnen komma till mig.\" — Mark 10:14"},
+{t:"Herre, jag vill vara en trygg plats för {B}.\n\nInte en perfekt mamma – en trygg. Hjälp mig att skilja på de två.\n\nGe mig tålamod när de behöver mig för femtionde gången, och mildhet mot mig själv när jag suckar.\n\nVälsigna {P}, och hjälp oss att stötta varandra istället för att döma varandras trötthet.\n\nJag lämnar min oro för dem hos dig. Du älskar dem ännu mer än jag. Amen.", v:"\"Han skall bära er ända till ålderdomen.\" — Jes 46:4"},
+{t:"Gud, dagarna med små barn är långa och åren är korta, säger alla. Idag var lång.\n\nHjälp mig att inte önska bort den här tiden, men också att våga säga att den är tung.\n\nGe mig kraft att vara närvarande i en stund till.\n\nVälsigna {B} med trygghet och {P} med tålamod.\n\nAllt jag inte hann vara idag lägger jag hos dig. Du fyller igen där jag brister. Amen.", v:"\"Han ger den trötte kraft.\" — Jes 40:29"},
+{t:"Herre Jesus, tack för att du ser mig som mamma – också det ingen annan ser.\n\nNätterna. Tröstandet. Tålamodet jag skrapade ihop när det inte fanns något kvar.\n\nInget av det går dig förbi.\n\nVälsigna {B}. Låt dem växa upp trygga i att de är älskade oavsett hur de är.\n\nVälsigna {P} i hans sätt att älska dem.\n\nJag vilar i att jag inte är ensam om att bära dem. Amen.", v:"\"Han vet vad vi är gjorda av.\" — Ps 103:14"},
+{t:"Gud, hjälp mig idag att vara mjuk i rösten hemma.\n\nDet är där {B} lär sig hur kärlek låter. Låt dem höra tålamod, också när jag är slut.\n\nOch när jag misslyckas – låt dem få se att jag reparerar.\n\nVälsigna {P} och låt oss vara varandras stöd i föräldraskapet, inte varandras domare.\n\nJag lämnar dagen och mina misstag hos dig. Du tar emot båda. Amen.", v:"\"Kärleken är tålmodig och god.\" — 1 Kor 13:4"}
+],
+ensam: [
+{t:"Herre, jag känner mig ensam idag, mitt bland människor.\n\nDu vet vad det är. Du vet hur det känns att bära något som ingen annan ser.\n\nVar nära mig. Låt mig känna att jag inte är övergiven, även om ingen ringer.\n\nHjälp mig att räcka ut handen istället för att vänta på att bli hämtad. Ge mig mod att säga till {P} att jag behöver honom.\n\nTack för {B} och för deras närhet.\n\nJag lämnar min ensamhet hos dig. Du tar emot den, och jag är inte ensam med den längre. Amen.", v:"\"Ingenting kan skilja oss från Guds kärlek.\" — Rom 8:39"},
+{t:"Gud, det är tyst omkring mig och högljutt inuti.\n\nKom nära. Låt mig få veta att jag är sedd av dig, också när ingen annan hör av sig.\n\nHjälp mig att inte tolka tystnad som avvisande. Ge mig mod att höra av mig först.\n\nVälsigna {P} och hjälp oss hitta varandra igen i vardagen.\n\nJag vilar i att du alltid är här. Amen.", v:"\"Jag är med er alla dagar.\" — Matt 28:20"},
+{t:"Herre Jesus, jag längtar efter att någon ska fråga hur jag mår och orka höra svaret.\n\nDu frågar. Du orkar.\n\nTack för att jag får berätta allt för dig utan att först göra det snyggt.\n\nVälsigna {P}. Hjälp oss att vända oss mot varandra igen. Ge mig ord för det jag saknar.\n\nJag lämnar min längtan hos dig. Du bär den med mig. Amen.", v:"\"Ni är mina vänner.\" — Joh 15:14"},
+{t:"Gud, jag känner mig utanför och lite bortglömd.\n\nPåminn mig om vad som är sant: att jag är sedd, känd och älskad av dig.\n\nHjälp mig att inte jämföra mitt liv med andras skyltfönster.\n\nVälsigna {P} och {B}, och låt vårt hem vara en plats där jag hör hemma.\n\nJag vilar i att jag redan tillhör. Amen.", v:"\"Herren är min herde, mig skall intet fattas.\" — Ps 23:1"}
+],
+otillracklig: [
+{t:"Herre, jag känner att jag inte räcker till – inte som fru, inte som mamma, inte som människa.\n\nDu vet att det inte är sanningen, även när det känns sant.\n\nTa den känslan ifrån mig. Låt mig vila i att jag är älskad utan att prestera.\n\nVälsigna {P} och hjälp mig ta emot hans omsorg utan att först bevisa att jag förtjänar den.\n\nTack för {B} och för att de behöver en närvarande mamma, inte en perfekt.\n\nJag lämnar kravet hos dig. Du tar emot det, och jag får andas. Amen.", v:"\"Min nåd är nog för dig.\" — 2 Kor 12:9"},
+{t:"Gud, jag har varit hård mot mig själv hela dagen.\n\nHjälp mig tala till mig själv som jag skulle tala till någon jag älskar.\n\nDu ser allt jag gjorde idag, också det som ingen räknade. Det räcker.\n\nVälsigna {P} och hjälp oss vara milda mot varandras brister.\n\nLåt {B} lära sig av mig att man får vara ofärdig och ändå älskad.\n\nJag lägger ner domen över mig själv hos dig. Amen.", v:"\"Han vet vad vi är gjorda av.\" — Ps 103:14"},
+{t:"Herre Jesus, jag jämför mig och kommer alltid till korta.\n\nHjälp mig sluta mäta mitt liv mot andras. Jag ser bara deras utsida och hela min insida.\n\nPåminn mig om vad du ser: någon som håller mycket samman, med kärlek, dag efter dag.\n\nVälsigna {P} och {B}, och gör mig fri från kravet att vara som någon annan.\n\nJag lämnar jämförelsen hos dig. Amen.", v:"\"Sök först Guds rike.\" — Matt 6:33"},
+{t:"Gud, jag skäms över hur jag var idag.\n\nTa emot det. Jag vill inte bära det in i natten och inte in i morgondagen.\n\nHjälp mig göra det som går att laga – ett förlåt, en kram – och lämna resten till dig.\n\nVälsigna {P} och {B}, och läk det jag sårade.\n\nTack för att din kärlek inte hänger på min prestation. Jag vilar i det. Amen.", v:"\"Var barmhärtiga, så som er Fader är barmhärtig.\" — Luk 6:36"},
+{t:"Herre, jag känner mig som en dålig fru idag.\n\nHjälp mig se att viljan att bli bättre redan är kärlek. Att jag inte är misslyckad för att jag är trött.\n\nVälsigna {P}. Ge honom tålamod, och ge mig mod att säga hur jag har det istället för att bli tyst och bitter.\n\nLåt oss vara medspelare igen i morgon.\n\nJag lägger min skuld här hos dig, och tar emot nåd istället. Amen.", v:"\"Kom till mig, alla ni som är tyngda av bördor.\" — Matt 11:28"}
+]
+};
+
+let bonOffset = 0;
+function valjTema(){
+  const post = data[idagStr()] || {};
+  const h = humorAv(post);
+  if(post.brak) return "forsoning";
+  if(post.farg === "r" || h.includes("Ångest") || h.includes("Överväldigad")) return "tung";
+  if(post.ensam || h.includes("Ensam")) return "ensam";
+  if(h.includes("Skör") || h.includes("Lättretlig")) return "otillracklig";
+  if(post.farg === "g") return "tacksamhet";
+  const dagNr = Math.floor(franNyckel(idagStr()).getTime() / 86400000);
+  return dagNr % 4 === 2 ? "barnen" : "vanlig";
+}
+function ritaBon(){
+  const n = lasNamn();
+  document.getElementById("namnP").value = n.p || "";
+  document.getElementById("namnB").value = n.b || "";
+  const tema = valjTema();
+  const pool = BONER[tema] || BONER.vanlig;
+  const dagNr = Math.floor(franNyckel(idagStr()).getTime() / 86400000);
+  const b = pool[((dagNr + bonOffset) % pool.length + pool.length) % pool.length];
+  const d = new Date();
+  document.getElementById("bonDatum").textContent = "Dagens bön · " + d.getDate() + " " + MAN[d.getMonth()];
+  document.getElementById("bonText").innerHTML =
+    fyllNamn(b.t).split("\n\n").map(p => "<p>" + p + "</p>").join("");
+  document.getElementById("bonVers").textContent = b.v;
+}
+document.getElementById("annanBon").addEventListener("click", () => { bonOffset++; ritaBon(); });
+document.getElementById("sparaNamnKnapp").addEventListener("click", () => {
+  sparaNamn({ p: document.getElementById("namnP").value.trim(), b: document.getElementById("namnB").value.trim() });
+  document.getElementById("namnMsg").textContent = "Sparat ✓";
+  ritaBon(); laddaDag();
+  setTimeout(() => { document.getElementById("namnMsg").textContent = ""; }, 1800);
+});
+
 /* ================= flikar ================= */
 function bytVy(namn){
   document.querySelectorAll(".vy").forEach(v => v.classList.toggle("aktiv", v.id === "vy-" + namn));
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("aktiv", b.dataset.vy === namn));
   if(namn === "kalender") ritaKalender();
+  if(namn === "bon") ritaBon();
   if(namn === "monster") ritaMonster();
   window.scrollTo(0,0);
 }
