@@ -210,6 +210,14 @@
   .stapelrad .varde{width:30px;font-size:.72rem;color:#8A8272;text-align:right}
   .insikt{font-size:.9rem;line-height:1.5;color:var(--black)}
   .insikt b{color:var(--gron)}
+  .ordlista{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}
+  .ordlista span{border-radius:999px;padding:5px 11px;font-size:.82rem;background:var(--linne);color:var(--black)}
+  .ordlista span.r{background:var(--dag-rod-bg)}
+  .ordlista span.g{background:var(--dag-gron-bg)}
+  .ordlista span.y{background:var(--dag-gul-bg)}
+  .textblock{padding:10px 0;border-bottom:1px solid #F0EADC}
+  .textblock:last-child{border-bottom:none}
+  .textblock .rub{font-size:.85rem;font-weight:700;margin-bottom:2px}
   .tomtext{font-size:.9rem;color:#8A8272;line-height:1.5}
 
   /* ---------- data ---------- */
@@ -325,6 +333,9 @@
         <button data-kval="y" class="kv-y" aria-label="Okej sömn"></button>
         <button data-kval="r" class="kv-r" aria-label="Dålig sömn"></button>
       </div>
+      <div class="rad" style="border-top:1px solid #F0EADC;margin-top:12px;padding-top:12px">
+        <span class="txt">Vaknade tröttare än jag la mig</span><button class="vipp" data-falt="trottareVid"></button>
+      </div>
       <button class="somn-rensa" id="somnRensa">Rensa</button>
     </div>
 
@@ -393,6 +404,16 @@
     <div class="kort">
       <h2>Humör</h2>
       <div id="humorInsikt" class="insikt tomtext">När du loggat humör på flera dagar syns här vilka känslor som präglar gröna respektive röda dagar.</div>
+    </div>
+    <div class="kort">
+      <h2>Dina anteckningar</h2>
+      <p class="tomtext" style="margin-bottom:6px">Ord och uttryck som utmärker olika sorters dagar – räknat lokalt i telefonen.</p>
+      <div id="textInsikt"></div>
+    </div>
+    <div class="kort">
+      <h2>Vad hjälper dig?</h2>
+      <p class="tomtext" style="margin-bottom:6px">Det som enligt din egen data hänger ihop med bättre dagar – rangordnat.</p>
+      <div id="hjalperInsikt"></div>
     </div>
     <div class="kort">
       <h2>Vad föregår en tung dag?</h2>
@@ -540,13 +561,27 @@ function uppdateraPrognos(){
     html += " " + s.charAt(0).toUpperCase() + s.slice(1) + ".";
   }
   html += tips;
+  if(poang >= 2){
+    const gjortIdag = {
+      egentid: aktuell.egentid, traning: aktuell.traning, mindfulness: aktuell.mindfulness,
+      vanner: aktuell.vanner, narhet: aktuell.narhet, utvilad: aktuell.utvilad,
+      tacksam: harTacksamhet(aktuell),
+      somn: typeof aktuell.somn === "number" && aktuell.somn >= 7,
+      steg: typeof aktuell.steg === "number" && aktuell.steg >= 8000,
+      skarmtid: typeof aktuell.skarmtid === "number" && aktuell.skarmtid < 180
+    };
+    const forslag = skyddsAnalys().filter(r => !gjortIdag[r.nyckelnamn]).slice(0,3);
+    if(forslag.length){
+      html += "<br><br><b>Det här brukar hjälpa dig:</b> " + forslag.map(r => r.atgard.toLowerCase()).join(" · ") + ".";
+    }
+  }
   el.className = "pms-banner " + klass;
   el.innerHTML = html;
   el.style.display = "block";
 }
 
 /* ================= idag-vyn ================= */
-function tomPost(){ return {farg:null,humor:[],somn:null,somnKval:null,skarmtid:null,steg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,vanner:false,brak:false,narhet:false,egentid:false,mindfulness:false,traning:false,traningTyp:[],tacksam:["","",""],anteckning:""}; }
+function tomPost(){ return {farg:null,humor:[],somn:null,somnKval:null,trottareVid:false,skarmtid:null,steg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,vanner:false,brak:false,narhet:false,egentid:false,mindfulness:false,traning:false,traningTyp:[],tacksam:["","",""],anteckning:""}; }
 function humorAv(p){
   const h = Array.isArray(p.humor) ? p.humor.slice() : [];
   if(p.uppevarv && !h.includes("Uppe i varv")) h.push("Uppe i varv");
@@ -636,7 +671,11 @@ document.querySelectorAll("#somnKval button").forEach(b => {
     document.querySelectorAll("#somnKval button").forEach(x => x.classList.toggle("vald", x.dataset.kval === aktuell.somnKval));
   });
 });
-document.getElementById("somnRensa").addEventListener("click", () => { aktuell.somn = null; aktuell.somnKval = null; visaSomn(); });
+document.getElementById("somnRensa").addEventListener("click", () => {
+  aktuell.somn = null; aktuell.somnKval = null; aktuell.trottareVid = false;
+  visaSomn();
+  document.querySelectorAll(".vipp").forEach(v => { if(v.dataset.falt === "trottareVid") v.classList.remove("pa"); });
+});
 document.getElementById("skarmMinus").addEventListener("click", () => {
   aktuell.skarmtid = typeof aktuell.skarmtid === "number" ? Math.max(0, aktuell.skarmtid - 15) : 120;
   visaSkarm();
@@ -699,6 +738,7 @@ document.getElementById("manFram").addEventListener("click", () => { kalManad++;
 const FARGVARDE = { g:100, y:50, r:0 };
 const FAKTORER = [
   ["utvilad","Utvilad vid uppvaknande"],
+  ["trottareVid","Vaknade tröttare än vid läggning"],
   ["socker","Åt socker"],
   ["alkohol","Drack alkohol"],
   ["traning","Tränade"],
@@ -713,6 +753,8 @@ function ritaMonster(){
   const poster = Object.keys(data).map(k => ({k, ...data[k]})).filter(p => p.farg);
   ritaVecka();
   ritaHumor(poster);
+  ritaText();
+  ritaHjalper();
   ritaForegar();
   const lista = document.getElementById("faktorLista");
   lista.innerHTML = "";
@@ -824,6 +866,157 @@ function ritaHumor(poster){
   if(tr.length) delar.push("På <b>röda dagar</b>: " + tr.join(", ") + ".");
   el.classList.remove("tomtext");
   el.innerHTML = delar.join(" ");
+}
+
+/* ================= textanalys av anteckningar ================= */
+const STOPPORD = new Set(("och att det som en jag är var på med för av den de har inte ett men vi till så om han hon " +
+"vad kan man när där här nu ju då mycket lite bara mer mest väldigt igen sen sedan efter före under över " +
+"vid från in ut upp ner hela halva alla andra samma också även eller ska skulle vill ville blev bli blir " +
+"gick går gjorde göra kände känns fick får hade haft varit vara känner idag imorgon igår dag dagen dagar " +
+"kväll kvällen morgon morgonen natt natten mig min mitt mina oss vår vårt våra dig din ditt sig sin sitt " +
+"honom henne dem deras det hur varför någon något några ingen inget inga this att jo nej ja ok okej lite").split(/\s+/));
+
+function tokens(txt){
+  return (txt || "").toLowerCase()
+    .replace(/[^a-zåäöéèü\s-]/g, " ")
+    .split(/\s+/)
+    .filter(o => o.length >= 3 && !STOPPORD.has(o));
+}
+function raknaOrd(texter, medPar){
+  const c = {};
+  for(const t of texter){
+    const o = tokens(t);
+    o.forEach(w => c[w] = (c[w] || 0) + 1);
+    if(medPar) for(let i = 0; i < o.length - 1; i++){
+      const par = o[i] + " " + o[i+1];
+      c[par] = (c[par] || 0) + 1;
+    }
+  }
+  return c;
+}
+/* ord som är överrepresenterade i grupp A jämfört med grupp B */
+function distinkta(textA, textB, max){
+  const a = raknaOrd(textA, true), b = raknaOrd(textB, true);
+  const nA = Math.max(1, textA.length), nB = Math.max(1, textB.length);
+  const res = [];
+  for(const w in a){
+    if(a[w] < 2) continue;
+    const fa = a[w] / nA, fb = (b[w] || 0) / nB;
+    const kvot = (fa + 0.05) / (fb + 0.05);
+    if(kvot >= 1.6) res.push({w, kvot, n: a[w]});
+  }
+  return res.sort((x,y) => (y.kvot * Math.log(1 + y.n)) - (x.kvot * Math.log(1 + x.n))).slice(0, max || 8);
+}
+function taggar(lista, klass){
+  if(!lista.length) return "";
+  return "<div class='ordlista'>" + lista.map(o => "<span class='" + klass + "'>" + o.w + "</span>").join("") + "</div>";
+}
+function ritaText(){
+  const el = document.getElementById("textInsikt");
+  const poster = Object.keys(data).map(k => ({k, ...data[k]}))
+    .filter(p => p.farg && p.anteckning && p.anteckning.trim().length > 3);
+  if(poster.length < 8){
+    el.innerHTML = "<p class='tomtext'>Skriv anteckningar på minst åtta loggade dagar så börjar analysen fungera (" + poster.length + " hittills).</p>";
+    return;
+  }
+  const txt = p => p.anteckning;
+  const roda = poster.filter(p => p.farg === "r").map(txt);
+  const grona = poster.filter(p => p.farg === "g").map(txt);
+  const ovriga = poster.filter(p => p.farg !== "r").map(txt);
+  const ovrigaG = poster.filter(p => p.farg !== "g").map(txt);
+  let html = "";
+  if(roda.length >= 3){
+    const d = distinkta(roda, ovriga, 8);
+    if(d.length) html += "<div class='textblock'><div class='rub'>Utmärker röda dagar</div>" + taggar(d, "r") + "</div>";
+  }
+  if(grona.length >= 3){
+    const d = distinkta(grona, ovrigaG, 8);
+    if(d.length) html += "<div class='textblock'><div class='rub'>Utmärker gröna dagar</div>" + taggar(d, "g") + "</div>";
+  }
+  /* teman per cykelfas */
+  const faser = [
+    ["Mens (dag 1–7)", p => p.cd >= 1 && p.cd <= 7],
+    ["Follikelfas (dag 8–14)", p => p.cd >= 8 && p.cd <= 14],
+    ["Runt ägglossning (dag 15–20)", p => p.cd >= 15 && p.cd <= 20],
+    ["Lutealfas (dag 21+)", p => p.cd >= 21]
+  ];
+  const medCd = poster.map(p => ({...p, cd: cykeldag(p.k)})).filter(p => p.cd);
+  if(medCd.length >= 10){
+    let fasHtml = "";
+    for(const [namn, test] of faser){
+      const i = medCd.filter(test), u = medCd.filter(p => !test(p));
+      if(i.length < 3) continue;
+      const d = distinkta(i.map(txt), u.map(txt), 6);
+      if(d.length) fasHtml += "<div class='textblock'><div class='rub'>" + namn + " <span style='font-weight:400;color:#8A8272'>(" + i.length + " dagar)</span></div>" + taggar(d, "y") + "</div>";
+    }
+    if(fasHtml) html += "<h2 style='margin-top:16px'>Teman per cykelfas</h2>" + fasHtml;
+  }
+  /* teman per månad – senaste tre */
+  const manader = {};
+  poster.forEach(p => { const m = p.k.slice(0,7); (manader[m] = manader[m] || []).push(p); });
+  const nycklar = Object.keys(manader).sort().slice(-3);
+  if(nycklar.length >= 2){
+    let mHtml = "";
+    for(const m of nycklar){
+      const i = manader[m], u = poster.filter(p => p.k.slice(0,7) !== m);
+      if(i.length < 3) continue;
+      const d = distinkta(i.map(txt), u.map(txt), 6);
+      if(d.length){
+        const namn = MAN[Number(m.slice(5,7)) - 1] + " " + m.slice(0,4);
+        mHtml += "<div class='textblock'><div class='rub' style='text-transform:capitalize'>" + namn + "</div>" + taggar(d, "") + "</div>";
+      }
+    }
+    if(mHtml) html += "<h2 style='margin-top:16px'>Teman över tid</h2>" + mHtml;
+  }
+  el.innerHTML = html || "<p class='tomtext'>Inga tydliga ordmönster ännu – fortsätt skriva så växer analysen fram.</p>";
+}
+
+/* ================= skyddsfaktorer: vad hjälper ================= */
+const SKYDD = [
+  ["egentid","Egen tid för dig själv","Lägg in 20–30 minuter som bara är dina"],
+  ["traning","Träning","Rör på dig – även en kort runda räknas"],
+  ["mindfulness","Mindfulness","Ta tio minuter mindfulness"],
+  ["vanner","Tid med vänner","Hör av dig till någon du tycker om"],
+  ["narhet","Närhet med Patrik","Sök en stund tillsammans"],
+  ["utvilad","Att vakna utvilad","Prioritera att komma i säng tidigt ikväll"]
+];
+function harTacksamhet(p){
+  return Array.isArray(p.tacksam) ? p.tacksam.some(t => t && t.trim()) : !!(p.tacksam && String(p.tacksam).trim());
+}
+function skyddsAnalys(){
+  const poster = Object.keys(data).map(k => ({k, ...data[k]})).filter(p => p.farg);
+  const res = [];
+  if(poster.length < 10) return res;
+  function jamfor(namn, atgard, med, utan, nyckelnamn){
+    if(med.length < 3 || utan.length < 3) return;
+    const dm = med.reduce((s,p) => s + FARGVARDE[p.farg], 0) / med.length;
+    const du = utan.reduce((s,p) => s + FARGVARDE[p.farg], 0) / utan.length;
+    const diff = Math.round(dm - du);
+    if(diff >= 8) res.push({namn, atgard, diff, nyckelnamn});
+  }
+  for(const [falt, namn, atgard] of SKYDD){
+    jamfor(namn, atgard, poster.filter(p => p[falt]), poster.filter(p => !p[falt]), falt);
+  }
+  jamfor("Skriva tacksamhet", "Skriv dina tre tacksamheter", poster.filter(harTacksamhet), poster.filter(p => !harTacksamhet(p)), "tacksam");
+  const medS = poster.filter(p => typeof p.somn === "number");
+  jamfor("Minst 7 timmars sömn", "Sikta på en tidig kväll", medS.filter(p => p.somn >= 7), medS.filter(p => p.somn < 7), "somn");
+  const medSt = poster.filter(p => typeof p.steg === "number");
+  jamfor("Minst 8 000 steg", "Ta en längre promenad", medSt.filter(p => p.steg >= 8000), medSt.filter(p => p.steg < 8000), "steg");
+  const medSk = poster.filter(p => typeof p.skarmtid === "number");
+  jamfor("Mindre skärmtid", "Lägg undan telefonen en stund", medSk.filter(p => p.skarmtid < 180), medSk.filter(p => p.skarmtid >= 180), "skarmtid");
+  return res.sort((a,b) => b.diff - a.diff);
+}
+function ritaHjalper(){
+  const el = document.getElementById("hjalperInsikt");
+  const res = skyddsAnalys();
+  if(!res.length){
+    el.innerHTML = "<p class='tomtext'>Behöver fler loggade dagar (minst tio) innan appen kan se vad som hjälper just dig.</p>";
+    return;
+  }
+  el.innerHTML = res.map(r =>
+    "<div class='faktor'><div class='namn'><span>" + r.namn + "</span><span class='delta battre'>+" + r.diff + "</span></div>" +
+    "<p class='tomtext' style='margin:0'>" + r.atgard + "</p></div>"
+  ).join("");
 }
 
 /* ================= vad föregår en tung dag ================= */
