@@ -134,6 +134,30 @@
   .buffertlista li{margin-bottom:3px}
   .buffertlista span{color:#8A8272;font-size:.78rem}
 
+  /* ---------- stopp-protokoll ---------- */
+  .paus-knapp{width:100%;background:#fff;color:var(--dag-rod);border:1px solid #DFC0C6;border-radius:var(--radius);padding:14px;font-family:'Karla',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:.02em;cursor:pointer;margin-bottom:10px}
+  #paus{display:none;position:fixed;inset:0;background:var(--gron);color:var(--ivory);z-index:60;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  #paus.visas{display:block}
+  .paus-inner{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 28px) 22px 50px}
+  .paus-rubrik{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:600;text-align:center;letter-spacing:.04em}
+  .paus-ingress{text-align:center;font-size:.95rem;opacity:.8;margin:6px 0 22px;line-height:1.5}
+  .paus-steg{background:rgba(250,246,239,.09);border-radius:12px;padding:13px 15px;margin-bottom:9px;font-size:.92rem;line-height:1.5}
+  .paus-steg b{color:var(--massing);display:block;margin-bottom:2px}
+  .paus-etikett{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--massing);margin:22px 0 10px;text-align:center}
+  .paus-krav{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .ledstjarna{background:var(--gron);color:var(--ivory);border-radius:var(--radius);padding:14px 16px;font-size:.88rem;line-height:1.55;margin-bottom:14px}
+  .ledstjarna b{color:var(--massing)}
+  .egentid-krav{display:none;font-size:.78rem;line-height:1.5;color:#8A8272;padding:2px 0 10px}
+  .egentid-krav.visas{display:block}
+  .minimi{margin:8px 0 0;padding-left:18px}
+  .minimi li{margin-bottom:2px}
+  .raddning{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:4px}
+  .raddning span{border:1px solid rgba(250,246,239,.3);border-radius:999px;padding:8px 14px;font-size:.85rem}
+  .paus-krav span{border:1px solid rgba(250,246,239,.3);border-radius:999px;padding:8px 14px;font-size:.85rem;cursor:pointer}
+  .paus-krav span.vald{background:var(--massing);border-color:var(--massing);color:var(--gron);font-weight:700}
+  .paus-andning{text-align:center;font-family:'Cormorant Garamond',serif;font-size:1.5rem;margin:26px 0 6px;min-height:32px;letter-spacing:.03em}
+  .paus-stang{width:100%;margin-top:16px;background:var(--ivory);color:var(--gron);border:none;border-radius:var(--radius);padding:15px;font-family:'Karla',sans-serif;font-size:1rem;font-weight:700;cursor:pointer}
+
   /* ---------- läkarrapport ---------- */
   #rapport{display:none;position:fixed;inset:0;background:var(--ivory);z-index:50;overflow-y:auto;-webkit-overflow-scrolling:touch}
   #rapport.visas{display:block}
@@ -271,6 +295,8 @@
       <button id="dagFram" aria-label="Nästa dag">›</button>
     </div>
 
+    <div class="ledstjarna">När jag blir irriterad behöver jag oftast <b>mindre belastning</b>, inte bättre självkontroll. Stoppa uppgiften. Säkra barnen. Pausa. Ta bort ett krav.</div>
+
     <div class="pms-banner" id="pmsBanner"></div>
 
     <div class="kort">
@@ -315,10 +341,14 @@
       <div class="rad"><span class="txt">Åt socker</span><button class="vipp" data-falt="socker"></button></div>
       <div class="rad"><span class="txt">Drack alkohol</span><button class="vipp" data-falt="alkohol"></button></div>
       <div class="rad"><span class="txt">Kände mig ensam</span><button class="vipp" data-falt="ensam"></button></div>
+      <div class="rad"><span class="txt">Ensam med barnansvaret större delen av dagen</span><button class="vipp" data-falt="soloansvar"></button></div>
+      <div class="rad"><span class="txt">Barnen var extra intensiva</span><button class="vipp" data-falt="barnintensiva"></button></div>
+      <div class="rad"><span class="txt">Tidspress eller stökigt hemma</span><button class="vipp" data-falt="tidspress"></button></div>
       <div class="rad"><span class="txt">Umgicks med vänner</span><button class="vipp" data-falt="vanner"></button></div>
       <div class="rad"><span class="txt">Jag och Patrik bråkade</span><button class="vipp" data-falt="brak"></button></div>
       <div class="rad"><span class="txt">Närhet med Patrik</span><button class="vipp" data-falt="narhet"></button></div>
       <div class="rad"><span class="txt">Hade egen tid för mig själv</span><button class="vipp" data-falt="egentid"></button></div>
+      <div class="egentid-krav" id="egentidKrav">Räknas när det var minst 20 minuter, utan ansvar för barnen, utan familjelogistik i huvudet och utan att behöva skynda tillbaka. Scrollande räknas sällan – rörelse, dusch, natur eller tystnad gör det.</div>
       <div class="rad"><span class="txt">Gjorde mindfulness</span><button class="vipp" data-falt="mindfulness"></button></div>
       <div class="rad"><span class="txt">Tränade</span><button class="vipp" data-falt="traning"></button></div>
       <div id="traningExtra">
@@ -396,6 +426,7 @@
       <textarea id="anteckning" placeholder="Något du vill minnas om dagen…"></textarea>
     </div>
 
+    <button class="paus-knapp" id="pausKnapp">Jag är på väg att koka</button>
     <button class="spara" id="sparaKnapp">Spara dagen</button>
     <div class="sparat-msg" id="sparatMsg"></div>
   </section>
@@ -497,6 +528,36 @@
   </div>
 </div>
 
+<div id="paus">
+  <div class="paus-inner">
+    <div class="paus-rubrik">Stopp</div>
+    <p class="paus-ingress">Det här är överbelastning. Du behöver inte lösa allt nu.</p>
+
+    <div class="paus-steg"><b>1. Lägg ner det du håller i.</b> Stäng av dammsugaren. Försök inte bara göra klart.</div>
+    <div class="paus-steg"><b>2. Säg det högt till barnen.</b> "Mamma är stressad och behöver pausa en minut. Ni har inte gjort något fel."</div>
+    <div class="paus-steg"><b>3. Sätt barnen säkert.</b> Den yngsta i spjälsäng eller lekhage, den äldre med bok eller ljudsaga. En kort protest är bättre än att du pressar dig till bristningsgränsen.</div>
+    <div class="paus-steg"><b>4. Gå undan i 60–90 sekunder.</b> Kallt vatten över händerna. Lång utandning. Släpp axlarna.</div>
+    <div class="paus-steg"><b>5. Ta bort ett krav innan du går tillbaka.</b> Annars kliver du in i samma brand igen.</div>
+
+    <div class="paus-etikett">Välj ett krav att stryka</div>
+    <div class="paus-krav">
+      <span>Städningen får vänta</span><span>Maten blir enkel</span><span>Vi går ut</span>
+      <span>Barnen får bada</span><span>Rummet stängs</span><span>Skärm är okej idag</span>
+      <span>Jag ringer Patrik</span><span>Utflykten ställs in</span>
+    </div>
+
+    <div class="paus-etikett">Byt miljö – räddningsaktiviteter</div>
+    <div class="raddning">
+      <span>Vattenlek i badrummet</span><span>Picknick på golvet</span><span>Ljudsaga</span>
+      <span>Bad tillsammans</span><span>Promenad med mellanmål i vagnen</span>
+      <span>Pysselådan</span><span>Klätterbana i vardagsrummet</span>
+    </div>
+
+    <div class="paus-andning" id="pausAndning">Andas in… 4</div>
+    <button class="paus-stang" id="pausStang">Tillbaka</button>
+  </div>
+</div>
+
 <nav>
   <button class="aktiv" data-vy="idag">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
@@ -574,7 +635,7 @@ const BUFFERTAR = [
   ["traning","Träning","Rör på dig – även en kort runda räknas"],
   ["vanner","Tid med vänner","Hör av dig till någon du tycker om"]
 ];
-const BELASTNINGAR = [["ensam","Ensamhet"],["trottareVid","Vaknade tröttare"],["brak","Bråk"],["socker","Socker"]];
+const BELASTNINGAR = [["ensam","Ensamhet"],["soloansvar","Ensam med barnansvaret"],["trottareVid","Vaknade tröttare"],["brak","Bråk"],["barnintensiva","Intensiva barn"],["tidspress","Tidspress eller stök"],["socker","Socker"]];
 
 /* per faktor: hur ofta dagar med faktorn blir gröna respektive röda */
 function riskStatistik(){
@@ -616,11 +677,13 @@ function morgonprognos(datumStr, idagPost){
     if(igar.socker){ poang -= 1; skal.push("mycket socker igår"); }
   }
   if(idagP.ensam){ poang -= 2; skal.push("ensam idag"); }
+  if(idagP.soloansvar){ poang -= 2; skal.push("ensam med barnansvaret idag"); }
   let niva, etikett;
   if(poang >= 2){ niva = "g"; etikett = "Låg risk idag"; }
   else if(poang >= 0){ niva = "y"; etikett = "Medelrisk idag"; }
   else { niva = "r"; etikett = "Förhöjd risk idag"; }
-  return { poang, niva, etikett, skal };
+  const aterhamtning = !!(igar && (igar.farg === "r" || igar.brak));
+  return { poang, niva, etikett, skal, aterhamtning };
 }
 /* rankade saknade buffertar, max 3 – rankas efter hur väl de funkat för dig */
 function riskForslag(dag, st){
@@ -647,13 +710,22 @@ function uppdateraPrognos(){
     const s = mp.skal.join(" · ");
     html += " " + s.charAt(0).toUpperCase() + s.slice(1) + ".";
   }
+  if(mp.aterhamtning){
+    html += "<br><br><b>Återhämtningsdag.</b> Igår var tungt. Idag ska inte kompenseras med extra produktivitet eller perfekt mammande – gör mindre, ät regelbundet, spara svåra samtal och be om konkret avlastning.";
+  }
   html += "<br><br><b>Balans just nu:</b> " + bal.buffertar + " buffert" + (bal.buffertar === 1 ? "" : "ar") +
           " mot " + bal.belastningar + " belastning" + (bal.belastningar === 1 ? "" : "ar") +
           " (netto " + (bal.netto > 0 ? "+" : "") + bal.netto + ").";
   if(bal.zon === "g") html += " I det här läget har dagen oftast blivit grön.";
   else if(bal.zon === "r") html += " Det här läget har aldrig gett en grön dag – sänk kraven idag.";
   else html += " " + (bal.saknasForGron === 1 ? "En buffert till" : bal.saknasForGron + " buffertar till") + " brukar räcka för att tippa över åt grönt.";
-  if(bal.belastningar >= 2){
+  if(bal.belastningar >= 3){
+    html += "<br><br><b>Riskdag.</b> Tre eller fler belastningar samtidigt. Prioritera lugn före ordning idag – skjut upp städprojekt, avancerad matlagning och allt som inte är nödvändigt. Målet är att sänka belastningen, inte att hinna det du tänkt.";
+    html += "<br><br><b>Miniminivå för idag – det här räcker:</b><ul class='minimi'>" +
+      "<li>Barnen är trygga</li><li>Alla får mat</li><li>Ni kommer ut en stund</li>" +
+      "<li>De viktigaste ytorna är framkomliga</li><li>Du kräver inte pedagogisk perfektion av dig själv</li></ul>" +
+      "Det är inte en misslyckad dag. Det är aktiv reglering.";
+  } else if(bal.belastningar >= 2){
     html += " Med två belastningar samtidigt har en enda buffert historiskt inte räckt.";
   }
   const forslag = riskForslag(aktuell, st);
@@ -670,7 +742,7 @@ function uppdateraPrognos(){
 }
 
 /* ================= idag-vyn ================= */
-function tomPost(){ return {farg:null,humor:[],somn:null,somnKval:null,trottareVid:false,skarmtid:null,steg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,vanner:false,brak:false,narhet:false,uppskattning:false,gjordeFor:false,relPatrik:"",relJag:"",relImorgon:"",egentid:false,mindfulness:false,traning:false,traningTyp:[],tacksam:["","",""],anteckning:""}; }
+function tomPost(){ return {farg:null,humor:[],somn:null,somnKval:null,trottareVid:false,skarmtid:null,steg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,soloansvar:false,barnintensiva:false,tidspress:false,vanner:false,brak:false,narhet:false,uppskattning:false,gjordeFor:false,relPatrik:"",relJag:"",relImorgon:"",egentid:false,mindfulness:false,traning:false,traningTyp:[],tacksam:["","",""],anteckning:""}; }
 function humorAv(p){
   const h = Array.isArray(p.humor) ? p.humor.slice() : [];
   if(p.uppevarv && !h.includes("Uppe i varv")) h.push("Uppe i varv");
@@ -690,6 +762,7 @@ function laddaDag(){
   document.querySelectorAll("#humorChips button").forEach(c => c.classList.toggle("vald", aktuell.humor.includes(c.dataset.humor)));
   document.querySelectorAll(".vipp").forEach(v => v.classList.toggle("pa", !!aktuell[v.dataset.falt]));
   document.getElementById("traningExtra").classList.toggle("visas", aktuell.traning);
+  document.getElementById("egentidKrav").classList.toggle("visas", aktuell.egentid);
   document.querySelectorAll("#traningChips button").forEach(c => c.classList.toggle("vald", aktuell.traningTyp.includes(c.dataset.typ)));
   document.getElementById("anteckning").value = aktuell.anteckning || "";
   document.getElementById("relPatrik").value = aktuell.relPatrik || "";
@@ -733,6 +806,7 @@ document.querySelectorAll(".vipp").forEach(v => {
     aktuell[f] = !aktuell[f];
     v.classList.toggle("pa", aktuell[f]);
     if(f === "traning") document.getElementById("traningExtra").classList.toggle("visas", aktuell.traning);
+    if(f === "egentid") document.getElementById("egentidKrav").classList.toggle("visas", aktuell.egentid);
     uppdateraPrognos();
   });
 });
@@ -1398,6 +1472,34 @@ document.getElementById("sparaNamnKnapp").addEventListener("click", () => {
   document.getElementById("namnMsg").textContent = "Sparat ✓";
   ritaBon(); laddaDag();
   setTimeout(() => { document.getElementById("namnMsg").textContent = ""; }, 1800);
+});
+
+/* ================= stopp-protokoll ================= */
+let andningTimer = null;
+function startaAndning(){
+  const el = document.getElementById("pausAndning");
+  const faser = [["Andas in", 4], ["Håll", 2], ["Andas ut", 6], ["", 1]];
+  let fas = 0, kvar = faser[0][1];
+  el.textContent = faser[0][0] + "… " + kvar;
+  clearInterval(andningTimer);
+  andningTimer = setInterval(() => {
+    kvar--;
+    if(kvar <= 0){ fas = (fas + 1) % faser.length; kvar = faser[fas][1]; }
+    el.textContent = faser[fas][0] ? faser[fas][0] + "… " + kvar : "";
+  }, 1000);
+}
+document.getElementById("pausKnapp").addEventListener("click", () => {
+  document.getElementById("paus").classList.add("visas");
+  document.querySelectorAll(".paus-krav span").forEach(s => s.classList.remove("vald"));
+  window.scrollTo(0,0);
+  startaAndning();
+});
+document.getElementById("pausStang").addEventListener("click", () => {
+  document.getElementById("paus").classList.remove("visas");
+  clearInterval(andningTimer);
+});
+document.querySelectorAll(".paus-krav span").forEach(s => {
+  s.addEventListener("click", () => s.classList.toggle("vald"));
 });
 
 /* ================= flikar ================= */
