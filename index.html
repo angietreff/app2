@@ -561,71 +561,99 @@ function rodSnitt(){
   if(cds.length < 2) return null;
   return Math.round(cds.reduce((a,b) => a+b, 0) / cds.length);
 }
+/* ================= riskmodell: buffertar mot belastningar =================
+   Bygger på analysen av din egen logg: det är inte en enskild trigger som
+   avgör dagen, utan balansen mellan buffertar och belastningar samma dag. */
+const BUFFERTAR = [
+  ["utvilad","Utvilad","Prioritera en tidig kväll – sovmorgon om det går"],
+  ["narhet","Närhet","Sök en stund tillsammans"],
+  ["egentid","Egen tid","Lägg in 20–30 minuter som bara är dina"],
+  ["traning","Träning","Rör på dig – även en kort runda räknas"],
+  ["mindfulness","Mindfulness","Ta tio minuter mindfulness"]
+];
+const BELASTNINGAR = [["ensam","Ensamhet"],["brak","Bråk"],["socker","Socker"]];
+
+/* per faktor: hur ofta dagar med faktorn blir gröna respektive röda */
+function riskStatistik(){
+  const alla = Object.keys(data).map(k => data[k]).filter(p => p.farg);
+  const st = {};
+  for(const [f] of BUFFERTAR.concat(BELASTNINGAR)){
+    const med = alla.filter(p => p[f]);
+    st[f] = {
+      antal: med.length,
+      andelGron: med.length ? med.filter(p => p.farg === "g").length / med.length : null,
+      andelRod: med.length ? med.filter(p => p.farg === "r").length / med.length : null
+    };
+  }
+  st._bas = alla.length ? alla.filter(p => p.farg === "g").length / alla.length : 0;
+  st._antal = alla.length;
+  return st;
+}
+function dagsbalans(dag){
+  const b = BUFFERTAR.filter(x => dag[x[0]]).length;
+  const s = BELASTNINGAR.filter(x => dag[x[0]]).length;
+  const netto = b - s;
+  let zon;
+  if(netto >= 2) zon = "g"; else if(netto <= -1) zon = "r"; else zon = "y";
+  return { buffertar: b, belastningar: s, netto, zon, saknasForGron: Math.max(0, 2 - netto) };
+}
+/* bara sådant som är känt redan på morgonen */
+function morgonprognos(datumStr, idagPost){
+  const idagP = idagPost || data[datumStr] || {};
+  const g = franNyckel(datumStr); g.setDate(g.getDate() - 1);
+  const igar = data[nyckel(g)] || null;
+  let poang = 0; const skal = [];
+  if(idagP.somnKval === "g"){ poang += 2; skal.push("god sömnkvalitet"); }
+  if(idagP.somnKval === "r"){ poang -= 2; skal.push("dålig sömnkvalitet"); }
+  if(idagP.trottareVid){ poang -= 1; skal.push("vaknade tröttare än du la dig"); }
+  if(igar){
+    if(igar.narhet){ poang += 1; skal.push("närhet igår"); }
+    if(igar.brak){ poang -= 1; skal.push("bråk igår"); }
+    if(igar.ensam){ poang -= 1; skal.push("ensam igår"); }
+    if(igar.socker){ poang -= 1; skal.push("mycket socker igår"); }
+  }
+  if(idagP.ensam){ poang -= 2; skal.push("ensam idag"); }
+  let niva, etikett;
+  if(poang >= 2){ niva = "g"; etikett = "Låg risk idag"; }
+  else if(poang >= 0){ niva = "y"; etikett = "Medelrisk idag"; }
+  else { niva = "r"; etikett = "Förhöjd risk idag"; }
+  return { poang, niva, etikett, skal };
+}
+/* rankade saknade buffertar, max 3 – rankas efter hur väl de funkat för dig */
+function riskForslag(dag, st){
+  return BUFFERTAR
+    .filter(([f]) => !dag[f])
+    .map(([f, namn, atgard]) => ({ f, namn, atgard, vikt: st[f] && st[f].antal >= 3 ? st[f].andelGron : 0 }))
+    .sort((a,b) => b.vikt - a.vikt)
+    .slice(0,3);
+}
 function uppdateraPrognos(){
   const el = document.getElementById("pmsBanner");
-  const antalLoggade = Object.keys(data).filter(k => data[k].farg).length;
-  if(antalLoggade < 7){ el.style.display = "none"; return; }
-  const st = cykelStat();
-  const cd = cykeldag(valtDatum);
-  const rs = rodSnitt();
-  const skal = [];
-  let poang = 0;
-  if(rs && cd && Math.abs(cd - rs) <= 3){
-    poang += 2;
-    skal.push("dag " + cd + " i cykeln, nära ditt röda fönster (runt dag " + rs + ")");
-  } else if(st.senaste && st.avg){
-    const nasta = franNyckel(st.senaste); nasta.setDate(nasta.getDate() + st.avg);
-    const kvar = Math.round((nasta - franNyckel(valtDatum)) / 86400000);
-    if(kvar >= 0 && kvar <= 5){ poang += 1; skal.push("mens beräknas om " + kvar + " dag" + (kvar === 1 ? "" : "ar")); }
-  }
-  const g = franNyckel(valtDatum); g.setDate(g.getDate() - 1);
-  const igar = data[nyckel(g)];
-  if(igar){
-    const ih = humorAv(igar);
-    if(ih.includes("Uppe i varv") || ih.includes("Lättretlig") || ih.includes("Irriterad")){
-      poang += 1; skal.push("uppe i varv eller lättretlig igår");
-    }
-    if(igar.farg === "r"){ poang += 1; skal.push("tung dag igår"); }
-  }
-  const idagPost = data[valtDatum];
-  if(idagPost && ((typeof idagPost.somn === "number" && idagPost.somn < 6) || idagPost.somnKval === "r")){
-    poang += 1; skal.push("kort eller dålig natt");
-  }
-  let loggadeBak = 0, haftEgen = false;
-  for(let i = 1; i <= 4; i++){
-    const d = franNyckel(valtDatum); d.setDate(d.getDate() - i);
-    const p = data[nyckel(d)];
-    if(p && p.farg){ loggadeBak++; if(p.egentid) haftEgen = true; }
-  }
-  if(loggadeBak >= 2 && !haftEgen){ poang += 1; skal.push("flera dagar utan egen tid"); }
-
-  let klass, rubrik, tips = "";
-  if(poang >= 3){ klass = "prog-r"; rubrik = "Hög risk för tung dag"; tips = " Sänk kraven, stryk det som kan strykas och planera in en stund för dig själv. Kommer dippen är den förutsedd – inte ditt fel."; }
-  else if(poang === 2){ klass = "prog-y"; rubrik = "Förhöjd risk idag"; tips = " Var extra snäll mot dig själv och ta det lugnt där det går."; }
-  else if(poang === 1){ klass = "prog-y"; rubrik = "Lätt förhöjd risk"; }
-  else { klass = "prog-g"; rubrik = "Goda förutsättningar idag"; tips = " Inget i dina mönster talar för en dipp – bra läge för det du skjutit upp."; }
-  let html = "<b>" + rubrik + ".</b>";
-  if(skal.length){
-    const s = skal.join(" · ");
+  const st = riskStatistik();
+  if(st._antal < 7){ el.style.display = "none"; return; }
+  const mp = morgonprognos(valtDatum, aktuell);
+  const bal = dagsbalans(aktuell);
+  /* kortets färg styrs av dagens balans om något är ikryssat, annars morgonprognosen */
+  const klass = (bal.buffertar + bal.belastningar) > 0 ? bal.zon : mp.niva;
+  let html = "<b>" + mp.etikett + ".</b>";
+  if(mp.skal.length){
+    const s = mp.skal.join(" · ");
     html += " " + s.charAt(0).toUpperCase() + s.slice(1) + ".";
   }
-  html += tips;
-  if(poang >= 2){
-    const gjortIdag = {
-      egentid: aktuell.egentid, traning: aktuell.traning, mindfulness: aktuell.mindfulness,
-      vanner: aktuell.vanner, narhet: aktuell.narhet, utvilad: aktuell.utvilad,
-      uppskattning: aktuell.uppskattning, gjordeFor: aktuell.gjordeFor,
-      tacksam: harTacksamhet(aktuell),
-      somn: typeof aktuell.somn === "number" && aktuell.somn >= 7,
-      steg: typeof aktuell.steg === "number" && aktuell.steg >= 8000,
-      skarmtid: typeof aktuell.skarmtid === "number" && aktuell.skarmtid < 180
-    };
-    const forslag = skyddsAnalys().filter(r => !gjortIdag[r.nyckelnamn]).slice(0,3);
-    if(forslag.length){
-      html += "<br><br><b>Det här brukar hjälpa dig:</b> " + forslag.map(r => r.atgard.toLowerCase()).join(" · ") + ".";
-    }
+  html += "<br><br><b>Balans just nu:</b> " + bal.buffertar + " buffert" + (bal.buffertar === 1 ? "" : "ar") +
+          " mot " + bal.belastningar + " belastning" + (bal.belastningar === 1 ? "" : "ar") +
+          " (netto " + (bal.netto > 0 ? "+" : "") + bal.netto + ").";
+  if(bal.zon === "g") html += " I det här läget har dagen oftast blivit grön.";
+  else if(bal.zon === "r") html += " Det här läget har aldrig gett en grön dag – sänk kraven idag.";
+  else html += " " + (bal.saknasForGron === 1 ? "En buffert till" : bal.saknasForGron + " buffertar till") + " brukar räcka för att tippa över åt grönt.";
+  if(bal.belastningar >= 2){
+    html += " Med två belastningar samtidigt har en enda buffert historiskt inte räckt.";
   }
-  el.className = "pms-banner " + klass;
+  const forslag = riskForslag(aktuell, st);
+  if(forslag.length && bal.zon !== "g"){
+    html += "<br><br><b>Det här brukar hjälpa dig:</b> " + forslag.map(r => r.atgard.toLowerCase()).join(" · ") + ".";
+  }
+  el.className = "pms-banner prog-" + klass;
   el.innerHTML = html;
   el.style.display = "block";
 }
@@ -694,6 +722,7 @@ document.querySelectorAll(".vipp").forEach(v => {
     aktuell[f] = !aktuell[f];
     v.classList.toggle("pa", aktuell[f]);
     if(f === "traning") document.getElementById("traningExtra").classList.toggle("visas", aktuell.traning);
+    uppdateraPrognos();
   });
 });
 document.querySelectorAll("#humorChips button").forEach(c => {
@@ -724,6 +753,7 @@ document.querySelectorAll("#somnKval button").forEach(b => {
   b.addEventListener("click", () => {
     aktuell.somnKval = aktuell.somnKval === b.dataset.kval ? null : b.dataset.kval;
     document.querySelectorAll("#somnKval button").forEach(x => x.classList.toggle("vald", x.dataset.kval === aktuell.somnKval));
+    uppdateraPrognos();
   });
 });
 document.getElementById("somnRensa").addEventListener("click", () => {
