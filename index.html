@@ -130,6 +130,9 @@
   .pms-banner.prog-g{background:var(--dag-gron-bg);border-color:#C4D8C9}
   .pms-banner.prog-y{background:var(--dag-gul-bg);border-color:#E8D5A8}
   .pms-banner.prog-r{background:var(--dag-rod-bg);border-color:#DFC0C6}
+  .buffertlista{margin:6px 0 0;padding-left:18px}
+  .buffertlista li{margin-bottom:3px}
+  .buffertlista span{color:#8A8272;font-size:.78rem}
 
   /* ---------- läkarrapport ---------- */
   #rapport{display:none;position:fixed;inset:0;background:var(--ivory);z-index:50;overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -565,13 +568,13 @@ function rodSnitt(){
    Bygger på analysen av din egen logg: det är inte en enskild trigger som
    avgör dagen, utan balansen mellan buffertar och belastningar samma dag. */
 const BUFFERTAR = [
-  ["utvilad","Utvilad","Prioritera en tidig kväll – sovmorgon om det går"],
-  ["narhet","Närhet","Sök en stund tillsammans"],
+  ["utvilad","Utvilad","Prioritera en tidig kväll – och sovmorgon om det går"],
   ["egentid","Egen tid","Lägg in 20–30 minuter som bara är dina"],
+  ["narhet","Närhet","Sök en stund tillsammans med honom"],
   ["traning","Träning","Rör på dig – även en kort runda räknas"],
-  ["mindfulness","Mindfulness","Ta tio minuter mindfulness"]
+  ["vanner","Tid med vänner","Hör av dig till någon du tycker om"]
 ];
-const BELASTNINGAR = [["ensam","Ensamhet"],["brak","Bråk"],["socker","Socker"]];
+const BELASTNINGAR = [["ensam","Ensamhet"],["trottareVid","Vaknade tröttare"],["brak","Bråk"],["socker","Socker"]];
 
 /* per faktor: hur ofta dagar med faktorn blir gröna respektive röda */
 function riskStatistik(){
@@ -623,7 +626,11 @@ function morgonprognos(datumStr, idagPost){
 function riskForslag(dag, st){
   return BUFFERTAR
     .filter(([f]) => !dag[f])
-    .map(([f, namn, atgard]) => ({ f, namn, atgard, vikt: st[f] && st[f].antal >= 3 ? st[f].andelGron : 0 }))
+    .map(([f, namn, atgard]) => {
+      const s = st[f] || {};
+      const nog = s.antal >= 3 && s.andelGron !== null;
+      return { f, namn, atgard, vikt: nog ? s.andelGron : -1, andel: nog ? s.andelGron : null };
+    })
     .sort((a,b) => b.vikt - a.vikt)
     .slice(0,3);
 }
@@ -650,8 +657,12 @@ function uppdateraPrognos(){
     html += " Med två belastningar samtidigt har en enda buffert historiskt inte räckt.";
   }
   const forslag = riskForslag(aktuell, st);
-  if(forslag.length && bal.zon !== "g"){
-    html += "<br><br><b>Det här brukar hjälpa dig:</b> " + forslag.map(r => r.atgard.toLowerCase()).join(" · ") + ".";
+  if(forslag.length){
+    const rubrik = bal.zon === "g" ? "Vill du bygga på ytterligare" : "Det här brukar hjälpa dig";
+    html += "<br><br><b>" + rubrik + ":</b>";
+    html += "<ul class='buffertlista'>" + forslag.map(r =>
+      "<li>" + r.atgard + (r.andel !== null ? " <span>" + Math.round(r.andel * 100) + "% gröna dagar</span>" : "") + "</li>"
+    ).join("") + "</ul>";
   }
   el.className = "pms-banner prog-" + klass;
   el.innerHTML = html;
