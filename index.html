@@ -322,6 +322,7 @@
         <button data-humor="Stressad">Stressad</button>
         <button data-humor="Skör">Skör</button>
         <button data-humor="Ledsen">Ledsen</button>
+        <button data-humor="Nedstämd">Nedstämd</button>
         <button data-humor="Orolig">Orolig</button>
         <button data-humor="Ångest">Ångest</button>
         <button data-humor="Överväldigad">Överväldigad</button>
@@ -332,6 +333,22 @@
         <button data-humor="Uppe i varv">Uppe i varv</button>
         <button data-humor="Rastlös">Rastlös</button>
         <button data-humor="Utbrändhetshuvudvärk">Utbrändhetshuvudvärk</button>
+      </div>
+    </div>
+
+    <div class="kort">
+      <div class="etikett">Kroppen idag – välj det som stämmer</div>
+      <div class="chips" id="kroppChips">
+        <button data-kropp="Huvudvärk">Huvudvärk</button>
+        <button data-kropp="Magont">Magont</button>
+        <button data-kropp="Uppsvälld">Uppsvälld</button>
+        <button data-kropp="Ömma bröst">Ömma bröst</button>
+        <button data-kropp="Illamående">Illamående</button>
+        <button data-kropp="Värk i kroppen">Värk i kroppen</button>
+        <button data-kropp="Spänd käke eller nacke">Spänd käke/nacke</button>
+        <button data-kropp="Yrsel">Yrsel</button>
+        <button data-kropp="Hjärtklappning">Hjärtklappning</button>
+        <button data-kropp="Sug efter socker">Sockersug</button>
       </div>
     </div>
 
@@ -426,7 +443,7 @@
       <textarea id="anteckning" placeholder="Något du vill minnas om dagen…"></textarea>
     </div>
 
-    <button class="paus-knapp" id="pausKnapp">Jag är på väg att koka</button>
+    <button class="paus-knapp" id="pausKnapp">Jag behöver pausa</button>
     <button class="spara" id="sparaKnapp">Spara dagen</button>
     <div class="sparat-msg" id="sparatMsg"></div>
   </section>
@@ -485,6 +502,11 @@
       <div id="humorInsikt" class="insikt tomtext">När du loggat humör på flera dagar syns här vilka känslor som präglar gröna respektive röda dagar.</div>
     </div>
     <div class="kort">
+      <h2>Kroppen</h2>
+      <p class="tomtext" style="margin-bottom:6px">När i cykeln dina kroppsliga symtom brukar dyka upp.</p>
+      <div id="kroppInsikt" class="insikt tomtext">Logga kroppen på några dagar så syns mönstren här.</div>
+    </div>
+    <div class="kort">
       <h2>Dina anteckningar</h2>
       <p class="tomtext" style="margin-bottom:6px">Ord och uttryck som utmärker olika sorters dagar – räknat lokalt i telefonen.</p>
       <div id="textInsikt"></div>
@@ -503,6 +525,11 @@
       <h2>Vad hänger ihop med dina dagar?</h2>
       <p class="tomtext" style="margin-bottom:6px">Snittfärg på dagar <em>med</em> respektive <em>utan</em> varje faktor (0 = röd, 100 = grön).</p>
       <div id="faktorLista"></div>
+    </div>
+    <div class="kort">
+      <div class="etikett">Inställningar</div>
+      <div class="rad"><span class="txt">Visa dagsprognosen</span><button class="vipp" id="visaPrognos"></button></div>
+      <p class="tomtext" style="font-size:.8rem;margin-top:8px">Kortet är beskrivande, inte en varning – men märker du att du börjar kolla det oroligt kan du stänga av det. Loggningen och mönstren fungerar precis lika bra utan.</p>
     </div>
     <div class="kort">
       <h2>Data</h2>
@@ -679,9 +706,9 @@ function morgonprognos(datumStr, idagPost){
   if(idagP.ensam){ poang -= 2; skal.push("ensam idag"); }
   if(idagP.soloansvar){ poang -= 2; skal.push("ensam med barnansvaret idag"); }
   let niva, etikett;
-  if(poang >= 2){ niva = "g"; etikett = "Låg risk idag"; }
-  else if(poang >= 0){ niva = "y"; etikett = "Medelrisk idag"; }
-  else { niva = "r"; etikett = "Förhöjd risk idag"; }
+  if(poang >= 2){ niva = "g"; etikett = "Goda förutsättningar idag"; }
+  else if(poang >= 0){ niva = "y"; etikett = "En vanlig dag"; }
+  else { niva = "r"; etikett = "Idag kan behöva mer marginal"; }
   const aterhamtning = !!(igar && (igar.farg === "r" || igar.brak));
   return { poang, niva, etikett, skal, aterhamtning };
 }
@@ -700,7 +727,7 @@ function riskForslag(dag, st){
 function uppdateraPrognos(){
   const el = document.getElementById("pmsBanner");
   const st = riskStatistik();
-  if(st._antal < 7){ el.style.display = "none"; return; }
+  if(st._antal < 7 || !prognosPa()){ el.style.display = "none"; return; }
   const mp = morgonprognos(valtDatum, aktuell);
   const bal = dagsbalans(aktuell);
   /* kortets färg styrs av dagens balans om något är ikryssat, annars morgonprognosen */
@@ -711,22 +738,21 @@ function uppdateraPrognos(){
     html += " " + s.charAt(0).toUpperCase() + s.slice(1) + ".";
   }
   if(mp.aterhamtning){
-    html += "<br><br><b>Återhämtningsdag.</b> Igår var tungt. Idag ska inte kompenseras med extra produktivitet eller perfekt mammande – gör mindre, ät regelbundet, spara svåra samtal och be om konkret avlastning.";
+    html += "<br><br><b>Ta det lite lugnare idag.</b> Igår var tungt, och då brukar dagen efter må bra av mindre – inte av att kompenseras med extra produktivitet. Ät regelbundet, spara svåra samtal och be om konkret avlastning.";
   }
   html += "<br><br><b>Balans just nu:</b> " + bal.buffertar + " buffert" + (bal.buffertar === 1 ? "" : "ar") +
-          " mot " + bal.belastningar + " belastning" + (bal.belastningar === 1 ? "" : "ar") +
-          " (netto " + (bal.netto > 0 ? "+" : "") + bal.netto + ").";
-  if(bal.zon === "g") html += " I det här läget har dagen oftast blivit grön.";
-  else if(bal.zon === "r") html += " Det här läget har aldrig gett en grön dag – sänk kraven idag.";
-  else html += " " + (bal.saknasForGron === 1 ? "En buffert till" : bal.saknasForGron + " buffertar till") + " brukar räcka för att tippa över åt grönt.";
+          " mot " + bal.belastningar + " belastning" + (bal.belastningar === 1 ? "" : "ar") + ".";
+  if(bal.zon === "g") html += " Det brukar vara ett bra läge för dig.";
+  else if(bal.zon === "r") html += " Lite tunt med buffertar – se om du kan lägga till något nedan.";
+  else html += " " + (bal.saknasForGron === 1 ? "En buffert till" : bal.saknasForGron + " buffertar till") + " brukar göra skillnad.";
   if(bal.belastningar >= 3){
-    html += "<br><br><b>Riskdag.</b> Tre eller fler belastningar samtidigt. Prioritera lugn före ordning idag – skjut upp städprojekt, avancerad matlagning och allt som inte är nödvändigt. Målet är att sänka belastningen, inte att hinna det du tänkt.";
-    html += "<br><br><b>Miniminivå för idag – det här räcker:</b><ul class='minimi'>" +
+    html += "<br><br><b>Mycket på en gång idag.</b> Flera saker drar åt samma håll. Det är ingen varning – bara ett tecken på att det är ett bra tillfälle att sänka ambitionsnivån. Skjut på städprojekt och avancerad matlagning; det du hinner räcker.";
+    html += "<br><br><b>Så här ser en tillräcklig dag ut:</b><ul class='minimi'>" +
       "<li>Barnen är trygga</li><li>Alla får mat</li><li>Ni kommer ut en stund</li>" +
       "<li>De viktigaste ytorna är framkomliga</li><li>Du kräver inte pedagogisk perfektion av dig själv</li></ul>" +
-      "Det är inte en misslyckad dag. Det är aktiv reglering.";
+      "Det är inte en misslyckad dag. Det är att välja klokt.";
   } else if(bal.belastningar >= 2){
-    html += " Med två belastningar samtidigt har en enda buffert historiskt inte räckt.";
+    html += " Två belastningar samtidigt brukar behöva mer än en buffert för att vägas upp.";
   }
   const forslag = riskForslag(aktuell, st);
   if(forslag.length){
@@ -742,7 +768,7 @@ function uppdateraPrognos(){
 }
 
 /* ================= idag-vyn ================= */
-function tomPost(){ return {farg:null,humor:[],somn:null,somnKval:null,trottareVid:false,skarmtid:null,steg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,soloansvar:false,barnintensiva:false,tidspress:false,vanner:false,brak:false,narhet:false,uppskattning:false,gjordeFor:false,relPatrik:"",relJag:"",relImorgon:"",egentid:false,mindfulness:false,traning:false,traningTyp:[],tacksam:["","",""],anteckning:""}; }
+function tomPost(){ return {farg:null,humor:[],kropp:[],somn:null,somnKval:null,trottareVid:false,skarmtid:null,steg:null,mens:false,utvilad:false,socker:false,alkohol:false,ensam:false,soloansvar:false,barnintensiva:false,tidspress:false,vanner:false,brak:false,narhet:false,uppskattning:false,gjordeFor:false,relPatrik:"",relJag:"",relImorgon:"",egentid:false,mindfulness:false,traning:false,traningTyp:[],tacksam:["","",""],anteckning:""}; }
 function humorAv(p){
   const h = Array.isArray(p.humor) ? p.humor.slice() : [];
   if(p.uppevarv && !h.includes("Uppe i varv")) h.push("Uppe i varv");
@@ -760,6 +786,8 @@ function laddaDag(){
   document.querySelectorAll(".fargval button").forEach(b => b.classList.toggle("vald", b.dataset.farg === aktuell.farg));
   if(!Array.isArray(aktuell.humor)) aktuell.humor = [];
   document.querySelectorAll("#humorChips button").forEach(c => c.classList.toggle("vald", aktuell.humor.includes(c.dataset.humor)));
+  if(!Array.isArray(aktuell.kropp)) aktuell.kropp = [];
+  document.querySelectorAll("#kroppChips button").forEach(c => c.classList.toggle("vald", aktuell.kropp.includes(c.dataset.kropp)));
   document.querySelectorAll(".vipp").forEach(v => v.classList.toggle("pa", !!aktuell[v.dataset.falt]));
   document.getElementById("traningExtra").classList.toggle("visas", aktuell.traning);
   document.getElementById("egentidKrav").classList.toggle("visas", aktuell.egentid);
@@ -808,6 +836,14 @@ document.querySelectorAll(".vipp").forEach(v => {
     if(f === "traning") document.getElementById("traningExtra").classList.toggle("visas", aktuell.traning);
     if(f === "egentid") document.getElementById("egentidKrav").classList.toggle("visas", aktuell.egentid);
     uppdateraPrognos();
+  });
+});
+document.querySelectorAll("#kroppChips button").forEach(c => {
+  c.addEventListener("click", () => {
+    const t = c.dataset.kropp;
+    const i = aktuell.kropp.indexOf(t);
+    if(i >= 0) aktuell.kropp.splice(i,1); else aktuell.kropp.push(t);
+    c.classList.toggle("vald", i < 0);
   });
 });
 document.querySelectorAll("#humorChips button").forEach(c => {
@@ -928,6 +964,7 @@ function ritaMonster(){
   const poster = Object.keys(data).map(k => ({k, ...data[k]})).filter(p => p.farg);
   ritaVecka();
   ritaHumor(poster);
+  ritaKropp();
   ritaText();
   ritaHjalper();
   ritaForegar();
@@ -1041,6 +1078,38 @@ function ritaHumor(poster){
   if(tr.length) delar.push("På <b>röda dagar</b>: " + tr.join(", ") + ".");
   el.classList.remove("tomtext");
   el.innerHTML = delar.join(" ");
+}
+
+/* ================= kroppsliga symtom ================= */
+function ritaKropp(){
+  const el = document.getElementById("kroppInsikt");
+  const poster = Object.keys(data).map(k => ({k, ...data[k]}))
+    .filter(p => Array.isArray(p.kropp) && p.kropp.length);
+  if(poster.length < 4){
+    el.innerHTML = "<p class='tomtext'>Logga kroppen på minst fyra dagar så syns mönstren här (" + poster.length + " hittills).</p>";
+    return;
+  }
+  const c = {};
+  poster.forEach(p => p.kropp.forEach(s => {
+    c[s] = c[s] || { antal: 0, cd: [] };
+    c[s].antal++;
+    const d = cykeldag(p.k);
+    if(d) c[s].cd.push(d);
+  }));
+  const rader = Object.entries(c).sort((a,b) => b[1].antal - a[1].antal).map(([namn, v]) => {
+    let txt = "<b>" + namn + "</b> – " + v.antal + " dag" + (v.antal === 1 ? "" : "ar");
+    if(v.cd.length >= 3){
+      const snitt = Math.round(v.cd.reduce((a,b) => a+b, 0) / v.cd.length);
+      const min = Math.min(...v.cd), max = Math.max(...v.cd);
+      txt += ", oftast runt cykeldag " + snitt + (min !== max ? " (dag " + min + "–" + max + ")" : "");
+    } else if(v.cd.length){
+      txt += ", cykeldag " + v.cd.join(", ");
+    }
+    return "<p class='insikt' style='margin-bottom:5px'>" + txt + "</p>";
+  });
+  el.classList.remove("tomtext");
+  el.innerHTML = rader.join("") +
+    "<p class='tomtext' style='margin-top:10px;font-size:.8rem'>Kroppsliga symtom som följer cykeln är vanliga och oftast helt godartade. Listan finns här för att göra dem begripliga – och för att kunna visa en läkare om du någon gång vill.</p>";
 }
 
 /* ================= textanalys av anteckningar ================= */
@@ -1354,6 +1423,22 @@ function visaRapport(){
       html += "<p>Tunga dagar infaller i snitt runt cykeldag " + snittRod + ".</p>";
     }
   }
+  const rodaKropp = poster.filter(p => Array.isArray(p.kropp) && p.kropp.length);
+  if(rodaKropp.length){
+    const ck = {};
+    rodaKropp.forEach(p => p.kropp.forEach(s => {
+      ck[s] = ck[s] || { antal: 0, cd: [] };
+      ck[s].antal++;
+      const d = cykeldag(p.k);
+      if(d) ck[s].cd.push(d);
+    }));
+    const lista = Object.entries(ck).sort((a,b) => b[1].antal - a[1].antal).map(([namn, v]) => {
+      let t = namn.toLowerCase() + " (" + v.antal + " dagar";
+      if(v.cd.length >= 3) t += ", i snitt cykeldag " + Math.round(v.cd.reduce((a,b) => a+b, 0) / v.cd.length);
+      return t + ")";
+    });
+    html += "<h2>Kroppsliga symtom</h2><p>" + lista.join(", ") + ".</p>";
+  }
   html += "<p class='r-meta'>Underlag inför vårdkontakt, t.ex. vid frågeställning om PMS/PMDS. Skattningarna är subjektiva och loggade dagligen.</p>";
   document.getElementById("rapportInnehall").innerHTML = html;
   document.getElementById("rapport").classList.add("visas");
@@ -1473,6 +1558,20 @@ document.getElementById("sparaNamnKnapp").addEventListener("click", () => {
   ritaBon(); laddaDag();
   setTimeout(() => { document.getElementById("namnMsg").textContent = ""; }, 1800);
 });
+
+/* ================= inställning: visa dagsprognos ================= */
+const PROGNOS_NYCKEL = "dagbok-visa-prognos";
+function prognosPa(){ try{ return localStorage.getItem(PROGNOS_NYCKEL) !== "av"; }catch(e){ return true; } }
+(function initPrognosVal(){
+  const v = document.getElementById("visaPrognos");
+  v.classList.toggle("pa", prognosPa());
+  v.addEventListener("click", () => {
+    const nyttPa = !v.classList.contains("pa");
+    v.classList.toggle("pa", nyttPa);
+    try{ localStorage.setItem(PROGNOS_NYCKEL, nyttPa ? "på" : "av"); }catch(e){}
+    uppdateraPrognos();
+  });
+})();
 
 /* ================= stopp-protokoll ================= */
 let andningTimer = null;
